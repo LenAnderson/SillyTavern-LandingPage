@@ -8,6 +8,7 @@
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 3;
 }
 .stlp--wrapper .stlp--chars {
   position: absolute;
@@ -29,15 +30,11 @@
   transform-origin: bottom center;
   transform: scale(1);
 }
-.stlp--wrapper .stlp--chars > .stlp--char.stlp--2 > .stlp--avatar,
-.stlp--wrapper .stlp--chars > .stlp--char.stlp--3 > .stlp--avatar,
-.stlp--wrapper .stlp--chars > .stlp--char.stlp--4 > .stlp--avatar {
+.stlp--wrapper .stlp--chars > .stlp--char.stlp--group > .stlp--avatar {
   display: flex;
   flex-direction: row;
 }
-.stlp--wrapper .stlp--chars > .stlp--char.stlp--2 > .stlp--avatar > .stlp--sub,
-.stlp--wrapper .stlp--chars > .stlp--char.stlp--3 > .stlp--avatar > .stlp--sub,
-.stlp--wrapper .stlp--chars > .stlp--char.stlp--4 > .stlp--avatar > .stlp--sub {
+.stlp--wrapper .stlp--chars > .stlp--char.stlp--group > .stlp--avatar > .stlp--sub {
   flex: 0 0 var(--stlp--cardWidth);
   height: var(--stlp--cardHeight);
   margin-right: calc(var(--stlp--cardWidth) * -0.5);

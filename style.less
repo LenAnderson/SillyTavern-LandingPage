@@ -9,6 +9,7 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
+	z-index: 3;
 	.stlp--chars {
 		position: absolute;
 		bottom: 0;
@@ -29,7 +30,7 @@
 			transition: 300ms ease-in-out;
 			transform-origin: bottom center;
 			transform: scale(1);
-			&.stlp--2, &.stlp--3, &.stlp--4 {
+			&.stlp--group {
 				> .stlp--avatar {
 					display: flex;
 					flex-direction: row;

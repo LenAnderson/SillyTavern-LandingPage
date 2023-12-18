@@ -1,4 +1,5 @@
-import { characters, eventSource, event_types, getRequestHeaders, messageFormatting, reloadCurrentChat, setCharacterId, substituteParams, this_chid } from '../../../../script.js';
+import { characters, eventSource, event_types, getRequestHeaders, messageFormatting, reloadCurrentChat, saveSettingsDebounced, setCharacterId, substituteParams, this_chid } from '../../../../script.js';
+import { extension_settings, getContext } from '../../../extensions.js';
 import { groups, openGroupById, resetSelectedGroup } from '../../../group-chats.js';
 import { delay } from '../../../utils.js';
 
@@ -12,13 +13,18 @@ const remDom = async()=>{
     dom?.remove();
     dom = null;
 };
+const compCards = (a,b)=>{
+    if (a.fav && !b.fav) return -1;
+    if (!a.fav && b.fav) return 1;
+    return b.date_last_chat - a.date_last_chat;
+};
 const makeDom = async()=>{
     remDom();
     dom = document.createElement('div'); {
         dom.classList.add('stlp--wrapper');
         const root = document.createElement('div'); {
             root.classList.add('stlp--chars');
-            const chars = [...characters, ...groups].toSorted((a,b)=>b.date_last_chat - a.date_last_chat).slice(0, 5);
+            const chars = [...characters, ...groups].toSorted(compCards).slice(0, extension_settings.landingPage.numCards);
             chars.forEach(c=>{
                 let lmCon;
                 const char = document.createElement('div'); {
@@ -47,9 +53,11 @@ const makeDom = async()=>{
                     const ava = document.createElement('div'); {
                         ava.classList.add('stlp--avatar');
                         if (c.members) {
-                            ava.classList.add(`stlp--${Math.min(4, c.members.length)}`);
-                            char.classList.add(`stlp--${Math.min(4, c.members.length)}`);
-                            c.members.slice(0, 4).map(m=>characters.find(it=>it.avatar == m)).forEach((m, idx)=>{
+                            const members = c.members.slice(0, extension_settings.landingPage?.numAvatars ?? 4);
+                            char.classList.add('stlp--group');
+                            char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                            char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                            members.map(m=>characters.find(it=>it.avatar == m)).forEach((m, idx)=>{
                                 const subAva = document.createElement('div'); {
                                     subAva.classList.add('stlp--sub');
                                     subAva.classList.add(`stlp--a${idx}`);
@@ -74,18 +82,56 @@ const makeDom = async()=>{
                         }
                         char.append(ava);
                     }
-                    fetch('/api/chats/get', {
+                    fetch(`/api/chats${c.members ? '/group' : ''}/get`, {
                         method: 'POST',
                         headers: getRequestHeaders(),
-                        body: JSON.stringify({
-                            ch_name: c.name,
-                            file_name: c.chat,
-                            avatar_url: c.avatar,
-                        }),
+                        body: JSON.stringify(
+                            c.members ?
+                                { id: c.chat_id } :
+                                {
+                                    ch_name: c.name,
+                                    file_name: c.chat,
+                                    avatar_url: c.avatar,
+                                },
+                        ),
                         cache: 'no-cache',
                     }).then(async(resp)=>{
                         if (resp.ok) {
-                            const mes = (await resp.json()).slice(-1)[0];
+                            const mesList = (await resp.json());
+                            if (c.members) {
+                                const chars = mesList.filter(it=>!it.is_user && !it.is_system).map(it=>it.name).toReversed();
+                                const lastChars = [];
+                                for (const c of chars) {
+                                    if (!lastChars.includes(c)) {
+                                        lastChars.push(c);
+                                        if (lastChars.length >= extension_settings.landingPage?.numAvatars ?? 4) {
+                                            break;
+                                        }
+                                    }
+                                }
+                                char.classList.add('stlp--group');
+                                char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (lastChars.length - 1)})`;
+                                char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (lastChars.length - 1)})`;
+                                const newAva = document.createElement('div'); {
+                                    newAva.classList.add('stlp--avatar');
+                                    lastChars.map(m=>characters.find(it=>it.name == m)).forEach((m, idx)=>{
+                                        const subAva = document.createElement('div'); {
+                                            subAva.classList.add('stlp--sub');
+                                            subAva.classList.add(`stlp--a${idx}`);
+                                            subAva.style.backgroundImage = `url("/characters/${m.avatar}")`;
+                                            newAva.append(subAva);
+                                            const url = `/characters/${m.name}/neutral.png`;
+                                            fetch(url, { method:'HEAD' }).then(resp=>{
+                                                if (resp.ok) {
+                                                    subAva.style.backgroundImage = `url("${url}")`;
+                                                }
+                                            });
+                                        }
+                                    });
+                                    ava.replaceWith(newAva);
+                                }
+                            }
+                            const mes = mesList.slice(-1)[0];
                             if (mes) {
                                 const con = document.createElement('div'); {
                                     lmCon = con;
@@ -121,7 +167,7 @@ const makeDom = async()=>{
 };
 
 const onChatChanged = (chatFile)=>{
-    if (chatFile === undefined) {
+    if (chatFile === undefined && extension_settings.landingPage?.isEnabled) {
         log('LANDING');
         document.querySelector('#sheld').style.display = 'none';
         makeDom();
@@ -146,21 +192,73 @@ eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
 
 
 $(document).ready(function () {
+    if (!extension_settings.landingPage) {
+        extension_settings.landingPage = {
+            isEnabled: true,
+            showFavorites: true,
+            numCards: 5,
+            numAvatars: 4,
+        };
+    }
+    const settings = extension_settings.landingPage;
     const addSettings = () => {
         const html = `
-		<div class="stlp--settings">
-			<div class="inline-drawer">
-				<div class="inline-drawer-toggle inline-drawer-header">
-					<b>Landing Page</b>
-					<div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-				</div>
-				<div class="inline-drawer-content" style="font-size:small;">
-					Stuff...
-				</div>
-			</div>
-		</div>
+            <div class="stlp--settings">
+                <div class="inline-drawer">
+                    <div class="inline-drawer-toggle inline-drawer-header">
+                        <b>Landing Page</b>
+                        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+                    </div>
+                    <div class="inline-drawer-content" style="font-size:small;">
+                        <div class="flex-container">
+                            <label>
+                                <small>Enable landing page</small><br>
+                                <input type="checkbox" id="stlp--isEnabled" ${settings.isEnabled ? 'checked' : ''}>
+                            </label>
+                        </div>
+                        <div class="flex-container">
+                            <label>
+                                <small>Always show favorites</small><br>
+                                <input type="checkbox" id="stlp--showFavorites" ${settings.showFavorites ? 'checked' : ''}>
+                            </label>
+                        </div>
+                        <div class="flex-container">
+                            <label>
+                                <small>Number of characters to show</small><br>
+                                <input type="number" class="text_pole" min="0" id="stlp--numCards" value="${settings.numCards}">
+                            </label>
+                        </div>
+                        <div class="flex-container">
+                            <label>
+                                <small>Number of avatars to show for group chats</small><br>
+                                <input type="number" class="text_pole" min="0" id="stlp--numAvatars" value="${settings.numAvatars}">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
 		`;
         $('#extensions_settings').append(html);
+        document.querySelector('#stlp--isEnabled').addEventListener('click', ()=>{
+            settings.isEnabled = document.querySelector('#stlp--isEnabled').checked;
+            saveSettingsDebounced();
+            onChatChanged(getContext().chat_id);
+        });
+        document.querySelector('#stlp--showFavorites').addEventListener('click', ()=>{
+            settings.showFavorites = document.querySelector('#stlp--showFavorites').checked;
+            saveSettingsDebounced();
+            onChatChanged(getContext().chat_id);
+        });
+        document.querySelector('#stlp--numCards').addEventListener('change', ()=>{
+            settings.numCards = Number(document.querySelector('#stlp--numCards').value);
+            saveSettingsDebounced();
+            onChatChanged(getContext().chat_id);
+        });
+        document.querySelector('#stlp--numAvatars').addEventListener('click', ()=>{
+            settings.numAvatars = Number(document.querySelector('#stlp--numAvatars').value);
+            saveSettingsDebounced();
+            onChatChanged(getContext().chat_id);
+        });
     };
     addSettings();
 });
