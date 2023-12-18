@@ -1,5 +1,9 @@
 # Landing Page
 
+![](README/lp.jpg)  |  ![](README/lp-hover.jpg)
+:-:|:-:
+![](README/lp-settings.png) |
+
 
 
 
@@ -15,7 +19,7 @@ https://github.com/LenAnderson/SillyTavern-LandingPage/
 
 ## Usage
 
-...
+Click on a character to open the last chat.
 
 
 
