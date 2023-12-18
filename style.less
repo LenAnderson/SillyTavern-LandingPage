@@ -1,71 +1,110 @@
-.stl--chars {
-	--stl--cardHeight: 144px;
-	--stl--cardWidth: calc(var(--stl--cardHeight) / 144 * 96);
+
+.stlp--wrapper {
+	--stlp--cardHeight: 144px;
+	--stlp--cardWidth: calc(var(--stlp--cardHeight) / 144 * 96);
 }
-.stl--chars {
+.stlp--wrapper {
 	position: absolute;
-	bottom: 0;
+	top: var(--topBarBlockSize);
 	left: 0;
 	right: 0;
+	bottom: 0;
+	.stlp--chars {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
 
-	display: flex;
-	flex-direction: row;
-	justify-content: center;
-	gap: 2em;
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		gap: 2em;
 
-	> .stl--char {
-		cursor: pointer;
-		flex: 0 0 var(--stl--cardWidth);
-		width: var(--stl--cardWidth);
-		position: relative;
-		top: calc(var(--stl--cardHeight) / 2);
-		transition: 300ms ease-in-out;
-		transform-origin: bottom center;
-		transform: scale(1);
-		&.stl--2, &.stl--3, &.stl--4 {
-			> .stl--avatar {
-				display: flex;
-				flex-direction: row;
-				> .stl--sub {
-					flex: 0 0 var(--stl--cardWidth);
-					height: var(--stl--cardHeight);
-					margin-right: calc(var(--stl--cardWidth) * -0.5);
+		> .stlp--char {
+			cursor: pointer;
+			flex: 0 0 var(--stlp--cardWidth);
+			width: var(--stlp--cardWidth);
+			position: relative;
+			top: calc(var(--stlp--cardHeight) / 2);
+			transition: 300ms ease-in-out;
+			transform-origin: bottom center;
+			transform: scale(1);
+			&.stlp--2, &.stlp--3, &.stlp--4 {
+				> .stlp--avatar {
+					display: flex;
+					flex-direction: row;
+					> .stlp--sub {
+						flex: 0 0 var(--stlp--cardWidth);
+						height: var(--stlp--cardHeight);
+						margin-right: calc(var(--stlp--cardWidth) * -0.5);
+					}
+				}
+			}
+			&.stlp--2 {
+				flex: 0 0 calc(var(--stlp--cardWidth) * 1.5);
+				width: calc(var(--stlp--cardWidth) * 1.5);
+			}
+			&.stlp--3 {
+				flex: 0 0 calc(var(--stlp--cardWidth) * 2.0);
+				width: calc(var(--stlp--cardWidth) * 2.0);
+			}
+			&.stlp--4 {
+				flex: 0 0 calc(var(--stlp--cardWidth) * 2.5);
+				width: calc(var(--stlp--cardWidth) * 2.5);
+			}
+			&:hover {
+				top: 0;
+				transform: scale(1.25);
+				> .stlp--name {
+					opacity: 1;
+				}
+			}
+			> .stlp--name {
+				text-align: center;
+				opacity: 0;
+				transition: 400ms ease-in-out;
+			}
+			> .stlp--avatar {
+				height: var(--stlp--cardHeight);
+				width: 100%;
+				background-size: cover;
+				background-position: center;
+				.stlp--sub {
+					background-size: cover;
+					background-position: center;
 				}
 			}
 		}
-		&.stl--2 {
-			flex: 0 0 calc(var(--stl--cardWidth) * 1.5);
-			width: calc(var(--stl--cardWidth) * 1.5);
+	}
+
+	.stlp--lastMes {
+		position: fixed;
+		top: 0;
+		bottom: calc(var(--stlp--cardHeight) * 1.25);
+		left: 0;
+		right: 0;
+		display: flex;
+		align-items: center;
+		pointer-events: none;
+		justify-content: center;
+		opacity: 0;
+		transition: 300ms ease-in-out;
+		background: none !important;
+		border: none !important;
+		&.stlp--active {
+			opacity: 1;
 		}
-		&.stl--3 {
-			flex: 0 0 calc(var(--stl--cardWidth) * 2.0);
-			width: calc(var(--stl--cardWidth) * 2.0);
-		}
-		&.stl--4 {
-			flex: 0 0 calc(var(--stl--cardWidth) * 2.5);
-			width: calc(var(--stl--cardWidth) * 2.5);
-		}
-		&:hover {
-			top: 0;
-			transform: scale(1.25);
-			> .stl--name {
-				opacity: 1;
-			}
-		}
-		> .stl--name {
-			text-align: center;
-			opacity: 0;
-			transition: 400ms ease-in-out;
-		}
-		> .stl--avatar {
-			height: var(--stl--cardHeight);
-			width: 100%;
-			background-size: cover;
-			background-position: center;
-			.stl--sub {
-				background-size: cover;
-				background-position: center;
-			}
+		> .stlp--lastMesContent {
+			max-width: 50vw;
+			max-height: 50vh;
+			overflow: auto;
+			padding: 10px;
+			border-radius: 1px;
+			margin-bottom: 5px;
+			border: 1px solid var(--SmartThemeBorderColor);
+			backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    		background-color: var(--SmartThemeChatTintColor);
+			background-color: var(--SmartThemeUserMesBlurTintColor);
 		}
 	}
 }
