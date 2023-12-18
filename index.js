@@ -27,6 +27,7 @@ const makeDom = async()=>{
             const chars = [...characters, ...groups].toSorted(compCards).slice(0, extension_settings.landingPage.numCards);
             chars.forEach(c=>{
                 let lmCon;
+                let lastMes;
                 const char = document.createElement('div'); {
                     char.classList.add('stlp--char');
                     char.addEventListener('pointerenter', ()=>{
@@ -34,6 +35,10 @@ const makeDom = async()=>{
                     });
                     char.addEventListener('pointerleave', ()=>{
                         lmCon?.classList?.remove('stlp--active');
+                    });
+                    char.addEventListener('wheel', async(evt)=>{
+                        log('WHEEL', evt);
+                        lastMes.scrollTop += evt.deltaY;
                     });
                     char.addEventListener('click', async()=>{
                         if (c.members) {
@@ -63,7 +68,7 @@ const makeDom = async()=>{
                                     subAva.classList.add(`stlp--a${idx}`);
                                     subAva.style.backgroundImage = `url("/characters/${m.avatar}")`;
                                     ava.append(subAva);
-                                    const url = `/characters/${m.name}/neutral.png`;
+                                    const url = `/characters/${m.name}/${extension_settings.landingPage.expression ?? 'joy'}.png`;
                                     fetch(url, { method:'HEAD' }).then(resp=>{
                                         if (resp.ok) {
                                             subAva.style.backgroundImage = `url("${url}")`;
@@ -73,7 +78,7 @@ const makeDom = async()=>{
                             });
                         } else {
                             ava.style.backgroundImage = `url("/characters/${c.avatar}")`;
-                            const url = `/characters/${c.name}/neutral.png`;
+                            const url = `/characters/${c.name}/${extension_settings.landingPage.expression ?? 'joy'}.png`;
                             fetch(url, { method:'HEAD' }).then(resp=>{
                                 if (resp.ok) {
                                     ava.style.backgroundImage = `url("${url}")`;
@@ -120,7 +125,7 @@ const makeDom = async()=>{
                                             subAva.classList.add(`stlp--a${idx}`);
                                             subAva.style.backgroundImage = `url("/characters/${m.avatar}")`;
                                             newAva.append(subAva);
-                                            const url = `/characters/${m.name}/neutral.png`;
+                                            const url = `/characters/${m.name}/${extension_settings.landingPage.expression ?? 'joy'}.png`;
                                             fetch(url, { method:'HEAD' }).then(resp=>{
                                                 if (resp.ok) {
                                                     subAva.style.backgroundImage = `url("${url}")`;
@@ -138,6 +143,7 @@ const makeDom = async()=>{
                                     con.classList.add('stlp--lastMes');
                                     con.classList.add('mes');
                                     const lm = document.createElement('div'); {
+                                        lastMes = lm;
                                         lm.classList.add('stlp--lastMesContent');
                                         lm.classList.add('mes_text');
                                         let messageText = substituteParams(mes.mes);
@@ -234,6 +240,12 @@ $(document).ready(function () {
                                 <input type="number" class="text_pole" min="0" id="stlp--numAvatars" value="${settings.numAvatars}">
                             </label>
                         </div>
+                        <div class="flex-container">
+                            <label>
+                                <small>Expression to be used for characters with expression sprites</small><br>
+                                <select class="text_pole" id="stlp--expression"></select>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -259,6 +271,50 @@ $(document).ready(function () {
             saveSettingsDebounced();
             onChatChanged(getContext().chat_id);
         });
+        const sel = document.querySelector('#stlp--expression');
+        const exp = [
+            'admiration',
+            'amusement',
+            'anger',
+            'annoyance',
+            'approval',
+            'caring',
+            'confusion',
+            'curiosity',
+            'desire',
+            'disappointment',
+            'disapproval',
+            'disgust',
+            'embarrassment',
+            'excitement',
+            'fear',
+            'gratitude',
+            'grief',
+            'joy',
+            'love',
+            'nervousness',
+            'neutral',
+            'optimism',
+            'pride',
+            'realization',
+            'relief',
+            'remorse',
+            'sadness',
+            'surprise',
+        ];
+        exp.forEach(e=>{
+            const opt = document.createElement('option'); {
+                opt.value = e;
+                opt.textContent = e;
+                opt.selected = (settings.expression ?? 'joy') == e;
+                sel.append(opt);
+            }
+        });
+        sel.addEventListener('change', ()=>{
+            settings.expression = sel.value;
+            saveSettingsDebounced();
+            onChatChanged(getContext().chat_id);
+        })
     };
     addSettings();
 });

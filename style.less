@@ -19,6 +19,7 @@
 		display: flex;
 		flex-direction: row;
 		justify-content: center;
+		align-items: flex-end;
 		gap: 2em;
 
 		> .stlp--char {
@@ -26,7 +27,7 @@
 			flex: 0 0 var(--stlp--cardWidth);
 			width: var(--stlp--cardWidth);
 			position: relative;
-			top: calc(var(--stlp--cardHeight) / 2);
+			top: calc(var(--stlp--cardHeight) / 3);
 			transition: 300ms ease-in-out;
 			transform-origin: bottom center;
 			transform: scale(1);
@@ -41,18 +42,6 @@
 					}
 				}
 			}
-			&.stlp--2 {
-				flex: 0 0 calc(var(--stlp--cardWidth) * 1.5);
-				width: calc(var(--stlp--cardWidth) * 1.5);
-			}
-			&.stlp--3 {
-				flex: 0 0 calc(var(--stlp--cardWidth) * 2.0);
-				width: calc(var(--stlp--cardWidth) * 2.0);
-			}
-			&.stlp--4 {
-				flex: 0 0 calc(var(--stlp--cardWidth) * 2.5);
-				width: calc(var(--stlp--cardWidth) * 2.5);
-			}
 			&:hover {
 				top: 0;
 				transform: scale(1.25);
@@ -64,6 +53,17 @@
 				text-align: center;
 				opacity: 0;
 				transition: 400ms ease-in-out;
+				text-shadow:
+					0px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					1px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					1px 1px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					0px 1px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					-1px 1px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					-1px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					-1px -1px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					0px -1px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor),
+					1px -1px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor)
+				;
 			}
 			> .stlp--avatar {
 				height: var(--stlp--cardHeight);
