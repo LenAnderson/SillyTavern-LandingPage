@@ -1,5 +1,5 @@
 .stlp--wrapper {
-  --stlp--cardHeight: 144px;
+  --stlp--cardHeight: 200px;
   --stlp--cardWidth: calc(var(--stlp--cardHeight) / 144 * 96);
 }
 .stlp--wrapper {
@@ -39,6 +39,9 @@
   flex: 0 0 var(--stlp--cardWidth);
   height: var(--stlp--cardHeight);
   margin-right: calc(var(--stlp--cardWidth) * -0.5);
+}
+.stlp--highlightFavorites.stlp--wrapper .stlp--chars > .stlp--char.stlp--fav > .stlp--avatar {
+  filter: drop-shadow(0 0 6px yellow);
 }
 .stlp--wrapper .stlp--chars > .stlp--char:hover {
   top: 0;
@@ -83,7 +86,7 @@
 }
 .stlp--wrapper .stlp--lastMes > .stlp--lastMesContent {
   max-width: 50vw;
-  max-height: 50vh;
+  max-height: 80%;
   overflow: auto;
   padding: 10px;
   border-radius: 1px;

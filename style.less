@@ -1,6 +1,6 @@
 
 .stlp--wrapper {
-	--stlp--cardHeight: 144px;
+	--stlp--cardHeight: 200px;
 	--stlp--cardWidth: calc(var(--stlp--cardHeight) / 144 * 96);
 }
 .stlp--wrapper {
@@ -41,6 +41,9 @@
 						margin-right: calc(var(--stlp--cardWidth) * -0.5);
 					}
 				}
+			}
+			.stlp--highlightFavorites&.stlp--fav > .stlp--avatar {
+				filter: drop-shadow(0 0 6px yellow);
 			}
 			&:hover {
 				top: 0;
@@ -97,7 +100,7 @@
 		}
 		> .stlp--lastMesContent {
 			max-width: 50vw;
-			max-height: 50vh;
+			max-height: 80%;
 			overflow: auto;
 			padding: 10px;
 			border-radius: 1px;
