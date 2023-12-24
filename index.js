@@ -22,12 +22,24 @@ const makeDom = async()=>{
     remDom();
     dom = document.createElement('div'); {
         dom.classList.add('stlp--wrapper');
+        if (extension_settings.landingPage.centerCards) {
+            dom.classList.add('stlp--center');
+        }
         if (extension_settings.landingPage.highlightFavorites) {
             dom.classList.add('stlp--highlightFavorites');
         }
+        dom.style.setProperty('--stlp--cardHeight', `${extension_settings.landingPage.cardHeight ?? 200}px`)
+        const lmWrap = document.createElement('div'); {
+            lmWrap.classList.add('stlp--lastMesWrapper');
+            dom.append(lmWrap);
+        }
         const root = document.createElement('div'); {
             root.classList.add('stlp--chars');
-            const chars = [...characters, ...groups].toSorted(compCards).slice(0, extension_settings.landingPage.numCards);
+            const chars = [...characters, ...groups]
+                .filter(it=>!extension_settings.landingPage.onlyFavorites || it.fav)
+                .toSorted(compCards)
+                .slice(0, extension_settings.landingPage.numCards)
+            ;
             chars.forEach(c=>{
                 let lmCon;
                 let lastMes;
@@ -36,11 +48,15 @@ const makeDom = async()=>{
                     if (c.fav) {
                         char.classList.add('stlp--fav');
                     }
-                    char.addEventListener('pointerenter', ()=>{
+                    char.addEventListener('pointerenter', async()=>{
+                        lmCon?.classList?.add('stlp--preactive');
+                        await delay(10);
                         lmCon?.classList?.add('stlp--active');
                     });
-                    char.addEventListener('pointerleave', ()=>{
+                    char.addEventListener('pointerleave', async()=>{
                         lmCon?.classList?.remove('stlp--active');
+                        await delay(350);
+                        lmCon?.classList?.remove('stlp--preactive');
                     });
                     char.addEventListener('wheel', async(evt)=>{
                         lastMes.scrollTop += evt.deltaY;
@@ -62,8 +78,10 @@ const makeDom = async()=>{
                         ava.classList.add('stlp--avatar');
                         const members = c.members?.slice(0, extension_settings.landingPage?.numAvatars ?? 4) ?? [c.avatar];
                         char.classList.add('stlp--group');
-                        char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
-                        char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                        if (extension_settings.landingPage.showExpression ?? true) {
+                            char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                            char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                        }
                         char.append(ava);
                     }
                     fetch(`/api/chats${c.members ? '/group' : ''}/get`, {
@@ -101,36 +119,55 @@ const makeDom = async()=>{
                             } else {
                                 members = [c.avatar];
                             }
-                            char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
-                            char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                            if (extension_settings.landingPage.showExpression ?? true) {
+                                char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                                char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
+                            }
                             const newAva = document.createElement('div'); {
                                 newAva.classList.add('stlp--avatar');
-                                const imgs = [];
-                                members.map(m=>characters.find(it=>it.name == m || it.avatar == m)).forEach((m, idx)=>{
+                                if (extension_settings.landingPage.showExpression ?? true) {
+                                    const imgs = [];
+                                    members.map(m=>characters.find(it=>it.name == m || it.avatar == m)).forEach((m, idx)=>{
+                                        const img = document.createElement('img'); {
+                                            imgs.push(img);
+                                            img.classList.add('stlp--sub');
+                                            img.classList.add(`stlp--a${idx}`);
+                                            img.addEventListener('load', ()=>{
+                                                if (!img.closest('body')) return;
+                                                img.style.width = `calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
+                                                img.style.flex = `0 0 calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
+                                                img.style.marginRight = `calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth} * -0.5)`;
+                                                char.style.width = `${imgs.reduce((sum,cur)=>sum+cur.offsetWidth*(sum?0.5:1),0)}px`;
+                                                char.style.flex = `0 0 ${imgs.reduce((sum,cur)=>sum+cur.offsetWidth*(sum?0.5:1),0)}px`;
+                                            });
+                                            newAva.append(img);
+                                            const url = `/characters/${m.name}/${extension_settings.landingPage.expression ?? 'joy'}.png`;
+                                            fetch(url, { method:'HEAD' }).then(async(resp)=>{
+                                                if (resp.ok) {
+                                                    img.src = url;
+                                                } else {
+                                                    img.src = `/characters/${m.avatar}`;
+                                                }
+                                            });
+                                        }
+                                    });
+                                    ava.replaceWith(newAva);
+                                } else {
                                     const img = document.createElement('img'); {
-                                        imgs.push(img);
                                         img.classList.add('stlp--sub');
-                                        img.classList.add(`stlp--a${idx}`);
+                                        img.classList.add(`stlp--a0`);
                                         img.addEventListener('load', ()=>{
                                             if (!img.closest('body')) return;
                                             img.style.width = `calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
                                             img.style.flex = `0 0 calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
-                                            img.style.marginRight = `calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth} * -0.5)`;
-                                            char.style.width = `${imgs.reduce((sum,cur)=>sum+cur.offsetWidth*(sum?0.5:1),0)}px`;
-                                            char.style.flex = `0 0 ${imgs.reduce((sum,cur)=>sum+cur.offsetWidth*(sum?0.5:1),0)}px`;
+                                            char.style.width = `${img.offsetWidth}px`;
+                                            char.style.flex = `0 0 ${img.offsetWidth}px`;
                                         });
                                         newAva.append(img);
-                                        const url = `/characters/${m.name}/${extension_settings.landingPage.expression ?? 'joy'}.png`;
-                                        fetch(url, { method:'HEAD' }).then(async(resp)=>{
-                                            if (resp.ok) {
-                                                img.src = url;
-                                            } else {
-                                                img.src = `/characters/${m.avatar}`;
-                                            }
-                                        });
+                                        img.src = c.members ? `/${c.avatar_url}` : `/characters/${c.avatar}`;
+                                        ava.replaceWith(newAva);
                                     }
-                                });
-                                ava.replaceWith(newAva);
+                                }
                             }
                             const mes = mesList.slice(-1)[0];
                             if (mes) {
@@ -154,7 +191,7 @@ const makeDom = async()=>{
                                         lm.innerHTML = messageText;
                                         con.append(lm);
                                     }
-                                    dom.append(con);
+                                    lmWrap.append(con);
                                 }
                             }
                         }
@@ -162,7 +199,7 @@ const makeDom = async()=>{
                     root.append(char);
                 }
             });
-            dom.append(root);
+            lmWrap.insertAdjacentElement('beforebegin', root);
         }
         document.body.append(dom);
     }
@@ -197,10 +234,15 @@ $(document).ready(function () {
     if (!extension_settings.landingPage) {
         extension_settings.landingPage = {
             isEnabled: true,
+            centerCards: false,
+            cardHeight: 200,
             showFavorites: true,
+            onlyFavorites: false,
             highlightFavorites: true,
             numCards: 5,
             numAvatars: 4,
+            showExpression: true,
+            expression: 'joy',
         };
     }
     const settings = extension_settings.landingPage;
@@ -221,8 +263,26 @@ $(document).ready(function () {
                         </div>
                         <div class="flex-container">
                             <label class="checkbox_label">
+                                <input type="checkbox" id="stlp--centerCards" ${settings.centerCards ?? false ? 'checked' : ''}>
+                                Center cards vertically
+                            </label>
+                        </div>
+                        <div class="flex-container">
+                            <label>
+                                Card height
+                                <input type="number" class="text_pole" min="0" id="stlp--cardHeight" value="${settings.cardHeight ?? 200}">
+                            </label>
+                        </div>
+                        <div class="flex-container">
+                            <label class="checkbox_label">
                                 <input type="checkbox" id="stlp--showFavorites" ${settings.showFavorites ? 'checked' : ''}>
                                 Always show favorites
+                            </label>
+                        </div>
+                        <div class="flex-container">
+                            <label class="checkbox_label">
+                                <input type="checkbox" id="stlp--onlyFavorites" ${settings.onlyFavorites ? 'checked' : ''}>
+                                Only show favorites
                             </label>
                         </div>
                         <div class="flex-container">
@@ -244,6 +304,12 @@ $(document).ready(function () {
                             </label>
                         </div>
                         <div class="flex-container">
+                            <label class="checkbox_label">
+                                <input type="checkbox" id="stlp--showExpression" ${(settings.showExpression ?? true) ? 'checked' : ''}>
+                                Show expression (uses avatar if disabled)
+                            </label>
+                        </div>
+                        <div class="flex-container">
                             <label>
                                 Expression to be used for characters with expression sprites
                                 <select class="text_pole" id="stlp--expression"></select>
@@ -259,8 +325,23 @@ $(document).ready(function () {
             saveSettingsDebounced();
             onChatChanged(getContext().chatId);
         });
+        document.querySelector('#stlp--centerCards').addEventListener('click', ()=>{
+            settings.centerCards = document.querySelector('#stlp--centerCards').checked;
+            saveSettingsDebounced();
+            onChatChanged(getContext().chatId);
+        });
+        document.querySelector('#stlp--cardHeight').addEventListener('change', ()=>{
+            settings.cardHeight = Number(document.querySelector('#stlp--cardHeight').value);
+            saveSettingsDebounced();
+            onChatChanged(getContext().chatId);
+        });
         document.querySelector('#stlp--showFavorites').addEventListener('click', ()=>{
             settings.showFavorites = document.querySelector('#stlp--showFavorites').checked;
+            saveSettingsDebounced();
+            onChatChanged(getContext().chatId);
+        });
+        document.querySelector('#stlp--onlyFavorites').addEventListener('click', ()=>{
+            settings.onlyFavorites = document.querySelector('#stlp--onlyFavorites').checked;
             saveSettingsDebounced();
             onChatChanged(getContext().chatId);
         });
@@ -274,8 +355,13 @@ $(document).ready(function () {
             saveSettingsDebounced();
             onChatChanged(getContext().chatId);
         });
-        document.querySelector('#stlp--numAvatars').addEventListener('click', ()=>{
+        document.querySelector('#stlp--numAvatars').addEventListener('change', ()=>{
             settings.numAvatars = Number(document.querySelector('#stlp--numAvatars').value);
+            saveSettingsDebounced();
+            onChatChanged(getContext().chatId);
+        });
+        document.querySelector('#stlp--showExpression').addEventListener('click', ()=>{
+            settings.showExpression = document.querySelector('#stlp--showExpression').checked;
             saveSettingsDebounced();
             onChatChanged(getContext().chatId);
         });
