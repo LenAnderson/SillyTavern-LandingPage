@@ -1,8 +1,9 @@
 # Landing Page
 
-![](README/lp.jpg)  |  ![](README/lp-hover.jpg)
+![](README/bottom.jpg)  |  ![](README/center.jpg)
 :-:|:-:
-![](README/lp-settings.png) |
+![](README/wall.jpg)  |  ![](README/iwall.jpg)
+![](README/settings.png) |
 
 
 
