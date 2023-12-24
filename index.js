@@ -1,222 +1,208 @@
-import { characters, eventSource, event_types, getRequestHeaders, messageFormatting, reloadCurrentChat, saveSettingsDebounced, selectCharacterById, setCharacterId, substituteParams, this_chid } from '../../../../script.js';
+import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
-import { groups, openGroupById, resetSelectedGroup } from '../../../group-chats.js';
-import { delay } from '../../../utils.js';
+import { registerSlashCommand } from '../../../slash-commands.js';
+import { LandingPage } from './src/LandingPage.js';
 
 
 
+// debugger;
+export const log = (...msg)=>console.log('[STL]', ...msg);
 
-const log = (...msg)=>console.log('[STL]', ...msg);
 
-let dom;
-const remDom = async()=>{
-    dom?.remove();
-    dom = null;
-};
-const compCards = (a,b)=>{
-    if (a.fav && !b.fav) return -1;
-    if (!a.fav && b.fav) return 1;
-    return b.date_last_chat - a.date_last_chat;
-};
-const makeDom = async()=>{
-    remDom();
-    dom = document.createElement('div'); {
-        dom.classList.add('stlp--wrapper');
-        if (extension_settings.landingPage.centerCards) {
-            dom.classList.add('stlp--center');
-        }
-        if (extension_settings.landingPage.highlightFavorites) {
-            dom.classList.add('stlp--highlightFavorites');
-        }
-        dom.style.setProperty('--stlp--cardHeight', `${extension_settings.landingPage.cardHeight ?? 200}px`)
-        const lmWrap = document.createElement('div'); {
-            lmWrap.classList.add('stlp--lastMesWrapper');
-            dom.append(lmWrap);
-        }
-        const root = document.createElement('div'); {
-            root.classList.add('stlp--chars');
-            const chars = [...characters, ...groups]
-                .filter(it=>!extension_settings.landingPage.onlyFavorites || it.fav)
-                .toSorted(compCards)
-                .slice(0, extension_settings.landingPage.numCards)
-            ;
-            chars.forEach(c=>{
-                let lmCon;
-                let lastMes;
-                const char = document.createElement('div'); {
-                    char.classList.add('stlp--char');
-                    if (c.fav) {
-                        char.classList.add('stlp--fav');
-                    }
-                    char.addEventListener('pointerenter', async()=>{
-                        lmCon?.classList?.add('stlp--preactive');
-                        await delay(10);
-                        lmCon?.classList?.add('stlp--active');
-                    });
-                    char.addEventListener('pointerleave', async()=>{
-                        lmCon?.classList?.remove('stlp--active');
-                        await delay(350);
-                        lmCon?.classList?.remove('stlp--preactive');
-                    });
-                    char.addEventListener('wheel', async(evt)=>{
-                        lastMes.scrollTop += evt.deltaY;
-                    });
-                    char.addEventListener('click', async()=>{
-                        if (c.members) {
-                            openGroupById(c.id);
-                        } else {
-                            const cidx = characters.findIndex(it=>it==c);
-                            selectCharacterById(String(cidx));
-                        }
-                    });
-                    const name = document.createElement('div'); {
-                        name.classList.add('stlp--name');
-                        name.textContent = c.name;
-                        char.append(name);
-                    }
-                    const ava = document.createElement('div'); {
-                        ava.classList.add('stlp--avatar');
-                        const members = c.members?.slice(0, extension_settings.landingPage?.numAvatars ?? 4) ?? [c.avatar];
-                        char.classList.add('stlp--group');
-                        if (extension_settings.landingPage.showExpression ?? true) {
-                            char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
-                            char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
-                        }
-                        char.append(ava);
-                    }
-                    fetch(`/api/chats${c.members ? '/group' : ''}/get`, {
-                        method: 'POST',
-                        headers: getRequestHeaders(),
-                        body: JSON.stringify(
-                            c.members ?
-                                { id: c.chat_id } :
-                                {
-                                    ch_name: c.name,
-                                    file_name: c.chat,
-                                    avatar_url: c.avatar,
-                                },
-                        ),
-                        cache: 'no-cache',
-                    }).then(async(resp)=>{
-                        if (resp.ok) {
-                            const mesList = (await resp.json());
-                            let members;
-                            if (c.members) {
-                                const chars = mesList.slice(1).filter(it=>!it.is_user && !it.is_system).map(it=>it.name).toReversed().slice(0,25);
-                                members = [];
-                                for (const c of chars) {
-                                    if (!members.includes(c)) {
-                                        members.push(c);
-                                        if (members.length >= extension_settings.landingPage?.numAvatars ?? 4) {
-                                            break;
-                                        }
-                                    }
-                                }
-                                while (members.length < (extension_settings.landingPage?.numAvatars ?? 4) && members.length < c.members.length) {
-                                    const mems = c.members.filter(it=>!members.includes(it));
-                                    members.push(mems[Math.floor(Math.random()*mems.length)]);
-                                }
-                            } else {
-                                members = [c.avatar];
-                            }
-                            if (extension_settings.landingPage.showExpression ?? true) {
-                                char.style.flex = `0 0 calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
-                                char.style.width = `calc(var(--stlp--cardWidth) * ${1 + 0.5 * (members.length - 1)})`;
-                            }
-                            const newAva = document.createElement('div'); {
-                                newAva.classList.add('stlp--avatar');
-                                if (extension_settings.landingPage.showExpression ?? true) {
-                                    const imgs = [];
-                                    members.map(m=>characters.find(it=>it.name == m || it.avatar == m)).forEach((m, idx)=>{
-                                        const img = document.createElement('img'); {
-                                            imgs.push(img);
-                                            img.classList.add('stlp--sub');
-                                            img.classList.add(`stlp--a${idx}`);
-                                            img.addEventListener('load', ()=>{
-                                                if (!img.closest('body')) return;
-                                                img.style.width = `calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
-                                                img.style.flex = `0 0 calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
-                                                img.style.marginRight = `calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth} * -0.5)`;
-                                                char.style.width = `${imgs.reduce((sum,cur)=>sum+cur.offsetWidth*(sum?0.5:1),0)}px`;
-                                                char.style.flex = `0 0 ${imgs.reduce((sum,cur)=>sum+cur.offsetWidth*(sum?0.5:1),0)}px`;
-                                            });
-                                            newAva.append(img);
-                                            const url = `/characters/${m.name}/${extension_settings.landingPage.expression ?? 'joy'}.png`;
-                                            fetch(url, { method:'HEAD' }).then(async(resp)=>{
-                                                if (resp.ok) {
-                                                    img.src = url;
-                                                } else {
-                                                    img.src = `/characters/${m.avatar}`;
-                                                }
-                                            });
-                                        }
-                                    });
-                                    ava.replaceWith(newAva);
-                                } else {
-                                    const img = document.createElement('img'); {
-                                        img.classList.add('stlp--sub');
-                                        img.classList.add(`stlp--a0`);
-                                        img.addEventListener('load', ()=>{
-                                            if (!img.closest('body')) return;
-                                            img.style.width = `calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
-                                            img.style.flex = `0 0 calc(var(--stlp--cardHeight) / ${img.naturalHeight} * ${img.naturalWidth})`;
-                                            char.style.width = `${img.offsetWidth}px`;
-                                            char.style.flex = `0 0 ${img.offsetWidth}px`;
-                                        });
-                                        newAva.append(img);
-                                        img.src = c.members ? `/${c.avatar_url}` : `/characters/${c.avatar}`;
-                                        ava.replaceWith(newAva);
-                                    }
-                                }
-                            }
-                            const mes = mesList.slice(-1)[0];
-                            if (mes) {
-                                const con = document.createElement('div'); {
-                                    lmCon = con;
-                                    con.classList.add('stlp--lastMes');
-                                    con.classList.add('mes');
-                                    const lm = document.createElement('div'); {
-                                        lastMes = lm;
-                                        lm.classList.add('stlp--lastMesContent');
-                                        lm.classList.add('mes_text');
-                                        let messageText = substituteParams(mes.mes);
-                                        setCharacterId(-1);
-                                        messageText = messageFormatting(
-                                            messageText,
-                                            mes.name,
-                                            false,
-                                            mes.is_user,
-                                        );
-                                        setCharacterId(undefined);
-                                        lm.innerHTML = messageText;
-                                        con.append(lm);
-                                    }
-                                    lmWrap.append(con);
-                                }
-                            }
-                        }
-                    });
-                    root.append(char);
-                }
-            });
-            lmWrap.insertAdjacentElement('beforebegin', root);
-        }
-        document.body.append(dom);
-    }
-};
-
-const onChatChanged = (chatFile)=>{
+/**@type {LandingPage} */
+let lp;
+const onChatChanged = async(chatFile)=>{
     if (chatFile === undefined && extension_settings.landingPage?.isEnabled) {
         log('LANDING');
         document.querySelector('#sheld').style.display = 'none';
-        makeDom();
+        await lp.load();
+        document.body.append(await lp.render());
     } else {
-        remDom();
+        lp.unrender();
         document.querySelector('#sheld').style.display = '';
     }
 };
-onChatChanged(undefined);
-eventSource.on(event_types.APP_READY, onChatChanged);
+const initSettings = () => {
+    const html = `
+    <div class="stlp--settings">
+        <div class="inline-drawer">
+            <div class="inline-drawer-toggle inline-drawer-header">
+                <b>Landing Page</b>
+                <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+            </div>
+            <div class="inline-drawer-content" style="font-size:small;">
+                <div class="flex-container">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="stlp--isEnabled" ${lp.settings.isEnabled ? 'checked' : ''}>
+                        Enable landing page
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label>
+                        Display style
+                        <select class="text_pole" id="stlp--displayStyle" value="${lp.settings.displayStyle}"></select>
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label>
+                        Card height
+                        <input type="number" class="text_pole" min="0" id="stlp--cardHeight" value="${lp.settings.cardHeight ?? 200}">
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="stlp--showFavorites" ${lp.settings.showFavorites ? 'checked' : ''}>
+                        Always show favorites
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="stlp--onlyFavorites" ${lp.settings.onlyFavorites ? 'checked' : ''}>
+                        Only show favorites
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="stlp--highlightFavorites" ${(lp.settings.highlightFavorites ?? true) ? 'checked' : ''}>
+                        Highlight favorites
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label>
+                        Number of characters to show
+                        <input type="number" class="text_pole" min="0" id="stlp--numCards" value="${lp.settings.numCards}">
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label>
+                        Number of avatars to show for group chats
+                        <input type="number" class="text_pole" min="0" id="stlp--numAvatars" value="${lp.settings.numAvatars}">
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="stlp--showExpression" ${(lp.settings.showExpression ?? true) ? 'checked' : ''}>
+                        Show expression (uses avatar if disabled)
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label>
+                        Expression to be used for characters with expression sprites
+                        <select class="text_pole" id="stlp--expression"></select>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
+    $('#extensions_settings').append(html);
+    document.querySelector('#stlp--isEnabled').addEventListener('click', ()=>{
+        lp.settings.isEnabled = document.querySelector('#stlp--isEnabled').checked;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    const style = document.querySelector('#stlp--displayStyle');
+    ['Bottom', 'Center', 'Wall', 'InfoWall'].forEach(it=>{
+        const opt = document.createElement('option'); {
+            opt.value = it;
+            opt.textContent = it;
+            opt.selected = lp.settings.displayStyle == it;
+            style.append(opt);
+        }
+    });
+    document.querySelector('#stlp--displayStyle').addEventListener('change', ()=>{
+        lp.settings.displayStyle = document.querySelector('#stlp--displayStyle').value;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--cardHeight').addEventListener('change', ()=>{
+        lp.settings.cardHeight = Number(document.querySelector('#stlp--cardHeight').value);
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--showFavorites').addEventListener('click', ()=>{
+        lp.settings.showFavorites = document.querySelector('#stlp--showFavorites').checked;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--onlyFavorites').addEventListener('click', ()=>{
+        lp.settings.onlyFavorites = document.querySelector('#stlp--onlyFavorites').checked;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--highlightFavorites').addEventListener('click', ()=>{
+        lp.settings.highlightFavorites = document.querySelector('#stlp--highlightFavorites').checked;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--numCards').addEventListener('change', ()=>{
+        lp.settings.numCards = Number(document.querySelector('#stlp--numCards').value);
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--numAvatars').addEventListener('change', ()=>{
+        lp.settings.numAvatars = Number(document.querySelector('#stlp--numAvatars').value);
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--showExpression').addEventListener('click', ()=>{
+        lp.settings.showExpression = document.querySelector('#stlp--showExpression').checked;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    const sel = document.querySelector('#stlp--expression');
+    const exp = [
+        'admiration',
+        'amusement',
+        'anger',
+        'annoyance',
+        'approval',
+        'caring',
+        'confusion',
+        'curiosity',
+        'desire',
+        'disappointment',
+        'disapproval',
+        'disgust',
+        'embarrassment',
+        'excitement',
+        'fear',
+        'gratitude',
+        'grief',
+        'joy',
+        'love',
+        'nervousness',
+        'neutral',
+        'optimism',
+        'pride',
+        'realization',
+        'relief',
+        'remorse',
+        'sadness',
+        'surprise',
+    ];
+    exp.forEach(e=>{
+        const opt = document.createElement('option'); {
+            opt.value = e;
+            opt.textContent = e;
+            opt.selected = (lp.settings.expression ?? 'joy') == e;
+            sel.append(opt);
+        }
+    });
+    sel.addEventListener('change', ()=>{
+        lp.settings.expression = sel.value;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+};
+const init = () => {
+    if (!lp) {
+        lp = new LandingPage();
+    }
+    initSettings();
+    onChatChanged();
+};
+eventSource.on(event_types.APP_READY, init);
 eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
 
 
@@ -225,190 +211,43 @@ eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
 
 
 
-// registerSlashCommand('sc-up', ()=>jumpUp(), [], 'jump to nearest branch point upwards', true, true);
-
-
-
-
-$(document).ready(function () {
-    if (!extension_settings.landingPage) {
-        extension_settings.landingPage = {
-            isEnabled: true,
-            centerCards: false,
-            cardHeight: 200,
-            showFavorites: true,
-            onlyFavorites: false,
-            highlightFavorites: true,
-            numCards: 5,
-            numAvatars: 4,
-            showExpression: true,
-            expression: 'joy',
-        };
+const lpCallback = (value) => {
+    switch (value) {
+        case 'off': {
+            document.querySelector('#stlp--isEnabled').checked = false;
+            lp.settings.isEnabled = false;
+            break;
+        }
+        case 'center': {
+            document.querySelector('#stlp--isEnabled').checked = true;
+            lp.settings.isEnabled = true;
+            document.querySelector('#stlp--displayStyle').value = 'Center';
+            lp.settings.displayStyle = 'Center';
+            break;
+        }
+        case 'wall': {
+            document.querySelector('#stlp--isEnabled').checked = true;
+            lp.settings.isEnabled = true;
+            document.querySelector('#stlp--displayStyle').value = 'Wall';
+            lp.settings.displayStyle = 'Wall';
+            break;
+        }
+        case 'infowall': {
+            document.querySelector('#stlp--isEnabled').checked = true;
+            lp.settings.isEnabled = true;
+            document.querySelector('#stlp--displayStyle').value = 'InfoWall';
+            lp.settings.displayStyle = 'InfoWall';
+            break;
+        }
+        default: {
+            document.querySelector('#stlp--isEnabled').checked = true;
+            lp.settings.isEnabled = true;
+            document.querySelector('#stlp--displayStyle').value = 'Bottom';
+            lp.settings.displayStyle = 'Bottom';
+            break;
+        }
     }
-    const settings = extension_settings.landingPage;
-    const addSettings = () => {
-        const html = `
-            <div class="stlp--settings">
-                <div class="inline-drawer">
-                    <div class="inline-drawer-toggle inline-drawer-header">
-                        <b>Landing Page</b>
-                        <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-                    </div>
-                    <div class="inline-drawer-content" style="font-size:small;">
-                        <div class="flex-container">
-                            <label class="checkbox_label">
-                                <input type="checkbox" id="stlp--isEnabled" ${settings.isEnabled ? 'checked' : ''}>
-                                Enable landing page
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label class="checkbox_label">
-                                <input type="checkbox" id="stlp--centerCards" ${settings.centerCards ?? false ? 'checked' : ''}>
-                                Center cards vertically
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label>
-                                Card height
-                                <input type="number" class="text_pole" min="0" id="stlp--cardHeight" value="${settings.cardHeight ?? 200}">
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label class="checkbox_label">
-                                <input type="checkbox" id="stlp--showFavorites" ${settings.showFavorites ? 'checked' : ''}>
-                                Always show favorites
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label class="checkbox_label">
-                                <input type="checkbox" id="stlp--onlyFavorites" ${settings.onlyFavorites ? 'checked' : ''}>
-                                Only show favorites
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label class="checkbox_label">
-                                <input type="checkbox" id="stlp--highlightFavorites" ${(settings.highlightFavorites ?? true) ? 'checked' : ''}>
-                                Highlight favorites
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label>
-                                Number of characters to show
-                                <input type="number" class="text_pole" min="0" id="stlp--numCards" value="${settings.numCards}">
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label>
-                                Number of avatars to show for group chats
-                                <input type="number" class="text_pole" min="0" id="stlp--numAvatars" value="${settings.numAvatars}">
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label class="checkbox_label">
-                                <input type="checkbox" id="stlp--showExpression" ${(settings.showExpression ?? true) ? 'checked' : ''}>
-                                Show expression (uses avatar if disabled)
-                            </label>
-                        </div>
-                        <div class="flex-container">
-                            <label>
-                                Expression to be used for characters with expression sprites
-                                <select class="text_pole" id="stlp--expression"></select>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-		`;
-        $('#extensions_settings').append(html);
-        document.querySelector('#stlp--isEnabled').addEventListener('click', ()=>{
-            settings.isEnabled = document.querySelector('#stlp--isEnabled').checked;
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--centerCards').addEventListener('click', ()=>{
-            settings.centerCards = document.querySelector('#stlp--centerCards').checked;
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--cardHeight').addEventListener('change', ()=>{
-            settings.cardHeight = Number(document.querySelector('#stlp--cardHeight').value);
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--showFavorites').addEventListener('click', ()=>{
-            settings.showFavorites = document.querySelector('#stlp--showFavorites').checked;
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--onlyFavorites').addEventListener('click', ()=>{
-            settings.onlyFavorites = document.querySelector('#stlp--onlyFavorites').checked;
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--highlightFavorites').addEventListener('click', ()=>{
-            settings.highlightFavorites = document.querySelector('#stlp--highlightFavorites').checked;
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--numCards').addEventListener('change', ()=>{
-            settings.numCards = Number(document.querySelector('#stlp--numCards').value);
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--numAvatars').addEventListener('change', ()=>{
-            settings.numAvatars = Number(document.querySelector('#stlp--numAvatars').value);
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        document.querySelector('#stlp--showExpression').addEventListener('click', ()=>{
-            settings.showExpression = document.querySelector('#stlp--showExpression').checked;
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        });
-        const sel = document.querySelector('#stlp--expression');
-        const exp = [
-            'admiration',
-            'amusement',
-            'anger',
-            'annoyance',
-            'approval',
-            'caring',
-            'confusion',
-            'curiosity',
-            'desire',
-            'disappointment',
-            'disapproval',
-            'disgust',
-            'embarrassment',
-            'excitement',
-            'fear',
-            'gratitude',
-            'grief',
-            'joy',
-            'love',
-            'nervousness',
-            'neutral',
-            'optimism',
-            'pride',
-            'realization',
-            'relief',
-            'remorse',
-            'sadness',
-            'surprise',
-        ];
-        exp.forEach(e=>{
-            const opt = document.createElement('option'); {
-                opt.value = e;
-                opt.textContent = e;
-                opt.selected = (settings.expression ?? 'joy') == e;
-                sel.append(opt);
-            }
-        });
-        sel.addEventListener('change', ()=>{
-            settings.expression = sel.value;
-            saveSettingsDebounced();
-            onChatChanged(getContext().chatId);
-        })
-    };
-    addSettings();
-});
+    saveSettingsDebounced();
+    onChatChanged(getContext().chatId);
+};
+registerSlashCommand('lp', (_, value)=>lpCallback(value), [], '<span class="monospace">(off|bottom|center|wall|infowall)</span> change the landing page layout or disable it', true, true);
