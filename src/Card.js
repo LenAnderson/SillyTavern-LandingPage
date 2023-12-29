@@ -93,7 +93,14 @@ export class Card {
 
     updateLastMembers(mesList) {
         if (this.isGroup) {
-            const chars = mesList.slice(1).filter(it=>!it.is_user && !it.is_system).map(it=>Member.getByName(it.name)).toReversed().slice(0,25);
+            const chars = mesList
+                .slice(1)
+                .filter(it=>!it.is_user && !it.is_system)
+                .map(it=>Member.getByName(it.name))
+                .filter(it=>it)
+                .toReversed()
+                .slice(0,25)
+            ;
             const members = [];
             for (const c of chars) {
                 if (!members.includes(c)) {

@@ -1,4 +1,4 @@
-import { eventSource, event_types, saveSettingsDebounced } from '../../../../script.js';
+import { eventSource, event_types, getRequestHeaders, saveSettingsDebounced } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
 import { registerSlashCommand } from '../../../slash-commands.js';
 import { LandingPage } from './src/LandingPage.js';
@@ -7,6 +7,19 @@ import { LandingPage } from './src/LandingPage.js';
 
 // debugger;
 export const log = (...msg)=>console.log('[STL]', ...msg);
+
+export const findExpression = async (name) => {
+    for (const ext of lp.settings.extensions) {
+        const url = `/characters/${name}/${lp.settings.expression}.${ext}`;
+        const resp = await fetch(url, {
+            method: 'HEAD',
+            headers: getRequestHeaders(),
+        });
+        if (resp.ok) {
+            return url;
+        }
+    }
+};
 
 
 /**@type {LandingPage} */
@@ -87,6 +100,12 @@ const initSettings = () => {
                 </div>
                 <div class="flex-container">
                     <label>
+                        File extensions (comma-separated list, e.g. <code>png,gif,webp</code>)
+                        <input type="text" class="text_pole" id="stlp--extensions" value="${lp.settings.extensions.join(',')}">
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label>
                         Expression to be used for characters with expression sprites
                         <select class="text_pole" id="stlp--expression"></select>
                     </label>
@@ -147,6 +166,11 @@ const initSettings = () => {
     });
     document.querySelector('#stlp--showExpression').addEventListener('click', ()=>{
         lp.settings.showExpression = document.querySelector('#stlp--showExpression').checked;
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--extensions').addEventListener('input', ()=>{
+        lp.settings.extensions = document.querySelector('#stlp--extensions').value?.split(/,\s*/);
         saveSettingsDebounced();
         onChatChanged(getContext().chatId);
     });

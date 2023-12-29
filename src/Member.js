@@ -1,4 +1,5 @@
 import { characters } from '../../../../../script.js';
+import { findExpression } from '../index.js';
 
 export class Member {
     /**@type {Member[]}*/static list = [];
@@ -61,9 +62,8 @@ export class Member {
             this.expressionImg = img;
             img.addEventListener('load', ()=>resolve(img));
             img.addEventListener('error', ()=>reject());
-            const url = `/characters/${this.name}/${expr}.png`;
-            const response = await fetch(url, { method:'HEAD' });
-            if (response.ok) {
+            const url = await findExpression(this.name);
+            if (url) {
                 img.src = url;
             } else {
                 img.src = `/characters/${this.avatar}`;

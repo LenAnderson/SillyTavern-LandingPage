@@ -25,6 +25,7 @@ export class LandingPage {
             numCards: 5,
             numAvatars: 4,
             showExpression: true,
+            extensions: ['png'],
             expression: 'joy',
         }, extension_settings.landingPage ?? {});
         extension_settings.landingPage = this.settings;
