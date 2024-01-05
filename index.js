@@ -1,5 +1,6 @@
-import { eventSource, event_types, getRequestHeaders, saveSettingsDebounced } from '../../../../script.js';
+import { active_character, active_group, characters, eventSource, event_types, getRequestHeaders, saveSettingsDebounced, selectCharacterById } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
+import { groups, openGroupById } from '../../../group-chats.js';
 import { registerSlashCommand } from '../../../slash-commands.js';
 import { LandingPage } from './src/LandingPage.js';
 
@@ -31,6 +32,9 @@ const onChatChanged = async(chatFile)=>{
         await lp.load();
         document.body.append(await lp.render());
     } else {
+        lp.settings.lastChat.character = characters[getContext().characterId]?.avatar;
+        lp.settings.lastChat.group = getContext().groupId;
+        saveSettingsDebounced();
         lp.unrender();
         document.querySelector('#sheld').style.display = '';
     }
@@ -352,4 +356,20 @@ const lpCallback = (value) => {
     saveSettingsDebounced();
     onChatChanged(getContext().chatId);
 };
-registerSlashCommand('lp', (_, value)=>lpCallback(value), [], '<span class="monospace">(off|bottom|center|wall|infowall)</span> change the landing page layout or disable it', true, true);
+registerSlashCommand('lp', (_, value)=>lpCallback(value), [], '<span class="monospace">(off|bottom|center|wall|infowall)</span> – change the landing page layout or disable it', true, true);
+
+const continueLastChat = async()=>{
+    if (lp.settings.lastChat.character) {
+        const c = characters.findIndex(it=>it.avatar == lp.settings.lastChat.character);
+        if (c > -1) {
+            return await selectCharacterById(c);
+        }
+    } else if (lp.settings.lastChat.group) {
+        const g = groups.find(it=>it.id == lp.settings.lastChat.group);
+        if (g) {
+            return await openGroupById(g.id);
+        }
+    }
+    toastr.warning('no last chat');
+};
+registerSlashCommand('lp-continue', ()=>continueLastChat(), [], ' – open the last active chat.', true, true);

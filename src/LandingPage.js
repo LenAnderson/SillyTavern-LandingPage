@@ -29,6 +29,7 @@ export class LandingPage {
             extensions: ['png'],
             expression: 'joy',
             menuList: [],
+            lastChat: { character:null, group:null },
         }, extension_settings.landingPage ?? {});
         extension_settings.landingPage = this.settings;
     }
