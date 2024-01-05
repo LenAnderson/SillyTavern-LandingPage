@@ -35,6 +35,62 @@ const onChatChanged = async(chatFile)=>{
         document.querySelector('#sheld').style.display = '';
     }
 };
+const makeMenuItem = (item) => {
+    const li = document.createElement('div'); {
+        li.classList.add('stlp--item');
+        const lw = document.createElement('div'); {
+            lw.classList.add('stlp--labelWrap');
+            const inp = document.createElement('input'); {
+                inp.classList.add('stlp--label');
+                inp.classList.add('text_pole');
+                inp.value = item.label;
+                inp.addEventListener('input', ()=>{
+                    item.label = inp.value.trim();
+                    saveSettingsDebounced();
+                    onChatChanged(getContext().chatId);
+                });
+                lw.append(inp);
+            }
+            li.append(lw);
+        }
+        const cw = document.createElement('div'); {
+            cw.classList.add('stlp--commandWrap');
+            const inp = document.createElement('textarea'); {
+                inp.classList.add('stlp--command');
+                inp.classList.add('text_pole');
+                inp.value = item.command;
+                inp.rows = 2;
+                inp.addEventListener('input', ()=>{
+                    item.command = inp.value.trim();
+                    saveSettingsDebounced();
+                    onChatChanged(getContext().chatId);
+                });
+                cw.append(inp);
+            }
+            li.append(cw);
+        }
+        const acts = document.createElement('div'); {
+            acts.classList.add('.stlp--actions');
+            const del = document.createElement('div'); {
+                del.classList.add('stlp--remove');
+                del.classList.add('menu_button');
+                del.classList.add('menu_button_icon');
+                del.classList.add('fa-solid');
+                del.classList.add('fa-trash');
+                del.classList.add('redWarningBG');
+                del.addEventListener('click', ()=>{
+                    li.remove();
+                    lp.settings.menuList.splice(lp.settings.menuList.indexOf(item), 1);
+                    saveSettingsDebounced();
+                    onChatChanged(getContext().chatId);
+                });
+                acts.append(del);
+            }
+            li.append(acts);
+        }
+    }
+    return li;
+};
 const initSettings = () => {
     const html = `
     <div class="stlp--settings">
@@ -109,6 +165,15 @@ const initSettings = () => {
                         Expression to be used for characters with expression sprites
                         <select class="text_pole" id="stlp--expression"></select>
                     </label>
+                </div>
+                <div class="flex-container">
+                    <div class="stlp--menuContainer">
+                        Menu
+                        <ul class="stlp--menuList"></ul>
+                        <div class="stlp--menuActions">
+                            <div class="stlp--menuAdd menu_button menu_button_icon fa-solid fa-plus"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -218,6 +283,19 @@ const initSettings = () => {
         saveSettingsDebounced();
         onChatChanged(getContext().chatId);
     });
+    /**@type {HTMLElement} */
+    const menuAdd = document.querySelector('.stlp--menuAdd');
+    menuAdd.addEventListener('click', ()=>{
+        const item = { label:'', command:'' };
+        lp.settings.menuList.push(item);
+        menuList.append(makeMenuItem(item));
+    });
+    const menuList = document.querySelector('.stlp--menuList'); {
+        lp.settings.menuList.forEach(item=>{
+            const li = makeMenuItem(item);
+            menuList.append(li);
+        });
+    }
 };
 const init = () => {
     if (!lp) {

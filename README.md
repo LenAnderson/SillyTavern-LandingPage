@@ -12,7 +12,7 @@
 
 ## Installation
 
-Use ST's inbuilt extension installer with this URL:
+Use ST's inbuilt extension installer with this URL:  
 https://github.com/LenAnderson/SillyTavern-LandingPage/
 
 

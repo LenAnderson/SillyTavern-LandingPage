@@ -1,6 +1,7 @@
 import { characters } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
 import { groups } from '../../../../group-chats.js';
+import { executeSlashCommands } from '../../../../slash-commands.js';
 import { log } from '../index.js';
 import { Card } from './Card.js';
 
@@ -27,6 +28,7 @@ export class LandingPage {
             showExpression: true,
             extensions: ['png'],
             expression: 'joy',
+            menuList: [],
         }, extension_settings.landingPage ?? {});
         extension_settings.landingPage = this.settings;
     }
@@ -57,21 +59,40 @@ export class LandingPage {
 
     async render() {
         this.dom?.remove();
-        const wrap = document.createElement('div'); {
-            this.dom = wrap;
-            wrap.classList.add('stlp--wrapper');
-            if (this.settings.highlightFavorites) {
-                wrap.classList.add('stlp--highlightFavorites');
+        const container = document.createElement('div'); {
+            this.dom = container;
+            container.classList.add('stlp--container');
+            const wrap = document.createElement('div'); {
+                wrap.classList.add('stlp--wrapper');
+                if (this.settings.highlightFavorites) {
+                    wrap.classList.add('stlp--highlightFavorites');
+                }
+                wrap.setAttribute('data-displayStyle', this.settings.displayStyle);
+                wrap.style.setProperty('--stlp--cardHeight', `${this.settings.cardHeight}px`);
+                const root = document.createElement('div'); {
+                    root.classList.add('stlp--cards');
+                    const els = await Promise.all(this.cards.map(async(card)=>{
+                        return await card.render(this.settings);
+                    }));
+                    els.forEach(it=>root.append(it));
+                    wrap.append(root);
+                }
+                container.append(wrap);
             }
-            wrap.setAttribute('data-displayStyle', this.settings.displayStyle);
-            wrap.style.setProperty('--stlp--cardHeight', `${this.settings.cardHeight}px`);
-            const root = document.createElement('div'); {
-                root.classList.add('stlp--cards');
-                const els = await Promise.all(this.cards.map(async(card)=>{
-                    return await card.render(this.settings);
-                }));
-                els.forEach(it=>root.append(it));
-                wrap.append(root);
+            const menu = document.createElement('ul'); {
+                menu.classList.add('stlp--menu');
+                this.settings.menuList.forEach(item=>{
+                    const li = document.createElement('li'); {
+                        li.classList.add('stlp--item');
+                        li.setAttribute('data-stlp--label', item.label);
+                        li.textContent = item.label;
+                        li.addEventListener('click', async()=>{
+                            await executeSlashCommands(item.command);
+                        });
+                        menu.append(li);
+                    }
+                });
+                container.append(menu);
             }
         }
         return this.dom;
