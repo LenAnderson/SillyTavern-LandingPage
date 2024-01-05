@@ -30,8 +30,12 @@ export class LandingPage {
             expression: 'joy',
             menuList: [],
             lastChat: { character:null, group:null },
+            hideTopBar: true,
         }, extension_settings.landingPage ?? {});
         extension_settings.landingPage = this.settings;
+        if (this.settings.hideTopBar) {
+            document.body.classList.add('stlp--hideTopBar');
+        }
     }
 
 
@@ -63,13 +67,13 @@ export class LandingPage {
         const container = document.createElement('div'); {
             this.dom = container;
             container.classList.add('stlp--container');
+            container.style.setProperty('--stlp--cardHeight', `${this.settings.cardHeight}px`);
             const wrap = document.createElement('div'); {
                 wrap.classList.add('stlp--wrapper');
                 if (this.settings.highlightFavorites) {
                     wrap.classList.add('stlp--highlightFavorites');
                 }
                 wrap.setAttribute('data-displayStyle', this.settings.displayStyle);
-                wrap.style.setProperty('--stlp--cardHeight', `${this.settings.cardHeight}px`);
                 const root = document.createElement('div'); {
                     root.classList.add('stlp--cards');
                     const els = await Promise.all(this.cards.map(async(card)=>{

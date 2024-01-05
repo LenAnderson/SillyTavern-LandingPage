@@ -1,4 +1,15 @@
-.stlp--wrapper {
+html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar,
+html > body.stlp--hideTopBar:has(.stlp--container) > #top-settings-holder {
+  opacity: 0;
+  transition: 200ms;
+}
+html > body.stlp--hideTopBar:has(.stlp--container) > #top-settings-holder:hover,
+html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover,
+html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar + #top-settings-holder:hover,
+html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-settings-holder {
+  opacity: 1;
+}
+.stlp--container {
   --stlp--cardHeight: 200px;
   --stlp--cardWidth: calc(var(--stlp--cardHeight) / 144 * 96);
 }

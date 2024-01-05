@@ -111,6 +111,12 @@ const initSettings = () => {
                     </label>
                 </div>
                 <div class="flex-container">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="stlp--hideTopBar" ${lp.settings.hideTopBar ? 'checked' : ''}>
+                        Hide top bar
+                    </label>
+                </div>
+                <div class="flex-container">
                     <label>
                         Display style
                         <select class="text_pole" id="stlp--displayStyle" value="${lp.settings.displayStyle}"></select>
@@ -188,6 +194,11 @@ const initSettings = () => {
         lp.settings.isEnabled = document.querySelector('#stlp--isEnabled').checked;
         saveSettingsDebounced();
         onChatChanged(getContext().chatId);
+    });
+    document.querySelector('#stlp--hideTopBar').addEventListener('click', ()=>{
+        lp.settings.hideTopBar = document.querySelector('#stlp--hideTopBar').checked;
+        saveSettingsDebounced();
+        document.body.classList[lp.settings.hideTopBar ? 'add' : 'remove']('stlp--hideTopBar');
     });
     const style = document.querySelector('#stlp--displayStyle');
     ['Bottom', 'Center', 'Wall', 'InfoWall'].forEach(it=>{
