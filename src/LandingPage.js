@@ -2,6 +2,7 @@ import { characters } from '../../../../../script.js';
 import { extension_settings } from '../../../../extensions.js';
 import { groups } from '../../../../group-chats.js';
 import { executeSlashCommands } from '../../../../slash-commands.js';
+import { delay } from '../../../../utils.js';
 import { log } from '../index.js';
 import { Card } from './Card.js';
 
@@ -11,6 +12,8 @@ export class LandingPage {
     /**@type {Object}*/ settings;
 
     /**@type {HTMLElement}*/ dom;
+    /**@type {HTMLVideoElement}*/ video;
+    /**@type {Boolean}*/ isStartingVideo;
 
 
 
@@ -63,6 +66,20 @@ export class LandingPage {
 
 
 
+    async startVideo() {
+        if (this.isStartingVideo) return;
+        this.isStartingVideo = true;
+        while (true) {
+            if (this.video.src == '') break;
+            try {
+                await this.video.play();
+                break;
+            } catch(ex) {
+                await delay(100);
+            }
+        }
+        this.isStartingVideo = false;
+    }
     async updateBackground() {
         let bg;
         for (const item of this.settings.bgList) {
@@ -74,8 +91,15 @@ export class LandingPage {
             }
         }
         if (bg) {
-            this.dom.style.backgroundImage = `url("${bg.url}")`;
+            if (/\.mp4$/i.test(bg.url)) {
+                this.video.src = bg.url;
+                this.dom.style.backgroundImage = '';
+            } else {
+                this.video.src = '';
+                this.dom.style.backgroundImage = `url("${bg.url}")`;
+            }
         } else {
+            this.video.src = '';
             this.dom.style.backgroundImage = '';
         }
     }
@@ -90,6 +114,14 @@ export class LandingPage {
             this.updateBackground();
             container.classList.add('stlp--container');
             container.style.setProperty('--stlp--cardHeight', `${this.settings.cardHeight}px`);
+            const video = document.createElement('video'); {
+                this.video = video;
+                video.classList.add('stlp--video');
+                video.loop = true;
+                video.muted = true;
+                video.autoplay = true;
+                container.append(video);
+            }
             const wrap = document.createElement('div'); {
                 wrap.classList.add('stlp--wrapper');
                 if (this.settings.highlightFavorites) {

@@ -32,6 +32,21 @@ html > body.stlp--hideTopBar:has(.stlp--container) > {
 	align-items: stretch;
 	background-size: cover;
 	background-position: center;
+
+	> .stlp--video {
+		display: block;
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		height: 100vh;
+		width: 100vw;
+		object-fit: cover;
+		object-position: center;
+		&[src=""] {
+			display: none;
+		}
+	}
+
 	.stlp--menu {
 		list-style: none;
 		margin: 0;
