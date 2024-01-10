@@ -31,6 +31,7 @@ export class LandingPage {
             menuList: [],
             lastChat: { character:null, group:null },
             hideTopBar: true,
+            bgList: [],
         }, extension_settings.landingPage ?? {});
         extension_settings.landingPage = this.settings;
         if (this.settings.hideTopBar) {
@@ -62,10 +63,31 @@ export class LandingPage {
 
 
 
+    async updateBackground() {
+        let bg;
+        for (const item of this.settings.bgList) {
+            let val = (await executeSlashCommands(item.command))?.pipe;
+            try { val = JSON.parse(val); } catch { /* empty */ }
+            if (!!val) {
+                bg = item;
+                break;
+            }
+        }
+        if (bg) {
+            this.dom.style.backgroundImage = `url("${bg.url}")`;
+        } else {
+            this.dom.style.backgroundImage = '';
+        }
+    }
+
+
+
+
     async render() {
         this.dom?.remove();
         const container = document.createElement('div'); {
             this.dom = container;
+            this.updateBackground();
             container.classList.add('stlp--container');
             container.style.setProperty('--stlp--cardHeight', `${this.settings.cardHeight}px`);
             const wrap = document.createElement('div'); {

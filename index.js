@@ -1,7 +1,8 @@
-import { active_character, active_group, characters, eventSource, event_types, getRequestHeaders, saveSettingsDebounced, selectCharacterById } from '../../../../script.js';
+import { characters, eventSource, event_types, getRequestHeaders, saveSettingsDebounced, selectCharacterById } from '../../../../script.js';
 import { extension_settings, getContext } from '../../../extensions.js';
 import { groups, openGroupById } from '../../../group-chats.js';
 import { registerSlashCommand } from '../../../slash-commands.js';
+import { getSortableDelay } from '../../../utils.js';
 import { LandingPage } from './src/LandingPage.js';
 
 
@@ -40,7 +41,7 @@ const onChatChanged = async(chatFile)=>{
     }
 };
 const makeMenuItem = (item) => {
-    const li = document.createElement('div'); {
+    const li = document.createElement('li'); {
         li.classList.add('stlp--item');
         const lw = document.createElement('div'); {
             lw.classList.add('stlp--labelWrap');
@@ -48,6 +49,7 @@ const makeMenuItem = (item) => {
                 inp.classList.add('stlp--label');
                 inp.classList.add('text_pole');
                 inp.value = item.label;
+                inp.placeholder = 'Label';
                 inp.addEventListener('input', ()=>{
                     item.label = inp.value.trim();
                     saveSettingsDebounced();
@@ -63,6 +65,7 @@ const makeMenuItem = (item) => {
                 inp.classList.add('stlp--command');
                 inp.classList.add('text_pole');
                 inp.value = item.command;
+                inp.placeholder = 'STScript';
                 inp.rows = 2;
                 inp.addEventListener('input', ()=>{
                     item.command = inp.value.trim();
@@ -85,6 +88,75 @@ const makeMenuItem = (item) => {
                 del.addEventListener('click', ()=>{
                     li.remove();
                     lp.settings.menuList.splice(lp.settings.menuList.indexOf(item), 1);
+                    saveSettingsDebounced();
+                    onChatChanged(getContext().chatId);
+                });
+                acts.append(del);
+            }
+            li.append(acts);
+        }
+    }
+    return li;
+};
+const makeBgItem = (item) => {
+    const li = document.createElement('li'); {
+        li.classList.add('stlp--item');
+        const drag = document.createElement('div'); {
+            drag.classList.add('stlp--dragHandle');
+            drag.classList.add('drag-handle');
+            drag.classList.add('ui-sortable-handler');
+            drag.textContent = '☰';
+            li.append(drag);
+        }
+        const cont = document.createElement('div'); {
+            cont.classList.add('stlp--content');
+            const lw = document.createElement('div'); {
+                lw.classList.add('stlp--labelWrap');
+                const inp = document.createElement('input'); {
+                    inp.classList.add('stlp--label');
+                    inp.classList.add('text_pole');
+                    inp.value = item.url;
+                    inp.placeholder = 'URL: /backgrounds/MyBackground.png';
+                    inp.addEventListener('input', ()=>{
+                        item.url = inp.value.trim();
+                        saveSettingsDebounced();
+                        lp.updateBackground();
+                    });
+                    lw.append(inp);
+                }
+                cont.append(lw);
+            }
+            const cw = document.createElement('div'); {
+                cw.classList.add('stlp--commandWrap');
+                const inp = document.createElement('textarea'); {
+                    inp.classList.add('stlp--command');
+                    inp.classList.add('text_pole');
+                    inp.value = item.command;
+                    inp.placeholder = 'STScript that returns true or false (or 1 or 0)';
+                    inp.rows = 2;
+                    inp.addEventListener('input', ()=>{
+                        item.command = inp.value.trim();
+                        saveSettingsDebounced();
+                        lp.updateBackground();
+                    });
+                    cw.append(inp);
+                }
+                cont.append(cw);
+            }
+            li.append(cont);
+        }
+        const acts = document.createElement('div'); {
+            acts.classList.add('.stlp--actions');
+            const del = document.createElement('div'); {
+                del.classList.add('stlp--remove');
+                del.classList.add('menu_button');
+                del.classList.add('menu_button_icon');
+                del.classList.add('fa-solid');
+                del.classList.add('fa-trash');
+                del.classList.add('redWarningBG');
+                del.addEventListener('click', ()=>{
+                    li.remove();
+                    lp.settings.bgList.splice(lp.settings.bgList.indexOf(item), 1);
                     saveSettingsDebounced();
                     onChatChanged(getContext().chatId);
                 });
@@ -182,6 +254,15 @@ const initSettings = () => {
                         <ul class="stlp--menuList"></ul>
                         <div class="stlp--menuActions">
                             <div class="stlp--menuAdd menu_button menu_button_icon fa-solid fa-plus"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-container">
+                    <div class="stlp--bgContainer">
+                        Backgrounds <small>(first background with STScript returning <code>true</code> is used)</small>
+                        <ul class="stlp--bgList"></ul>
+                        <div class="stlp--bgActions">
+                            <div class="stlp--bgAdd menu_button menu_button_icon fa-solid fa-plus"></div>
                         </div>
                     </div>
                 </div>
@@ -311,6 +392,31 @@ const initSettings = () => {
             menuList.append(li);
         });
     }
+    /**@type {HTMLElement} */
+    const bgAdd = document.querySelector('.stlp--bgAdd');
+    bgAdd.addEventListener('click', ()=>{
+        const item = { url:'', command:'' };
+        lp.settings.bgList.push(item);
+        const li = makeBgItem(item);
+        li.item = item;
+        bgList.append(li);
+    });
+    const bgList = document.querySelector('.stlp--bgList'); {
+        lp.settings.bgList.forEach(item=>{
+            const li = makeBgItem(item);
+            li.item = item;
+            bgList.append(li);
+        });
+    }
+    // @ts-ignore
+    $(bgList).sortable({
+        delay: getSortableDelay(),
+        stop: ()=>{
+            lp.settings.bgList.sort((a,b)=>Array.from(bgList.children).findIndex(it=>it.item==a)-Array.from(bgList.children).findIndex(it=>it.item==b));
+            saveSettingsDebounced();
+            lp.updateBackground();
+        },
+    });
 };
 const init = () => {
     if (!lp) {

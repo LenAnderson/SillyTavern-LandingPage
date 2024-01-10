@@ -16,11 +16,13 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
 .stlp--container {
   position: absolute;
   inset: 0;
-  top: var(--topBarBlockSize);
+  padding-top: var(--topBarBlockSize);
   z-index: 2000;
   display: flex;
   flex-direction: row;
   align-items: stretch;
+  background-size: cover;
+  background-position: center;
 }
 .stlp--container .stlp--menu {
   list-style: none;
@@ -211,23 +213,50 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
   margin: 0;
   width: unset;
 }
-.stlp--settings .stlp--menuContainer {
+.stlp--settings > .inline-drawer > .inline-drawer-content > * {
+  margin-bottom: 1em;
+}
+.stlp--settings .stlp--menuContainer,
+.stlp--settings .stlp--bgContainer {
   flex: 1 1 auto;
 }
-.stlp--settings .stlp--menuContainer .stlp--menuList {
+.stlp--settings .stlp--menuContainer .stlp--menuList,
+.stlp--settings .stlp--bgContainer .stlp--menuList,
+.stlp--settings .stlp--menuContainer .stlp--bgList,
+.stlp--settings .stlp--bgContainer .stlp--bgList {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item {
+.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item,
+.stlp--settings .stlp--bgContainer .stlp--menuList > .stlp--item,
+.stlp--settings .stlp--menuContainer .stlp--bgList > .stlp--item,
+.stlp--settings .stlp--bgContainer .stlp--bgList > .stlp--item {
   display: flex;
   flex-direction: row;
   gap: 0.5em;
   align-content: start;
+  align-items: start;
 }
-.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item > * {
+.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item > *,
+.stlp--settings .stlp--bgContainer .stlp--menuList > .stlp--item > *,
+.stlp--settings .stlp--menuContainer .stlp--bgList > .stlp--item > *,
+.stlp--settings .stlp--bgContainer .stlp--bgList > .stlp--item > * {
   flex: 0 0 auto;
 }
-.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item > .stlp--commandWrap {
+.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item > .stlp--dragHandle,
+.stlp--settings .stlp--bgContainer .stlp--menuList > .stlp--item > .stlp--dragHandle,
+.stlp--settings .stlp--menuContainer .stlp--bgList > .stlp--item > .stlp--dragHandle,
+.stlp--settings .stlp--bgContainer .stlp--bgList > .stlp--item > .stlp--dragHandle {
+  padding: 0.75em;
+}
+.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item > .stlp--commandWrap,
+.stlp--settings .stlp--bgContainer .stlp--menuList > .stlp--item > .stlp--commandWrap,
+.stlp--settings .stlp--menuContainer .stlp--bgList > .stlp--item > .stlp--commandWrap,
+.stlp--settings .stlp--bgContainer .stlp--bgList > .stlp--item > .stlp--commandWrap,
+.stlp--settings .stlp--menuContainer .stlp--menuList > .stlp--item .stlp--content,
+.stlp--settings .stlp--bgContainer .stlp--menuList > .stlp--item .stlp--content,
+.stlp--settings .stlp--menuContainer .stlp--bgList > .stlp--item .stlp--content,
+.stlp--settings .stlp--bgContainer .stlp--bgList > .stlp--item .stlp--content {
   flex: 1 1 auto;
 }

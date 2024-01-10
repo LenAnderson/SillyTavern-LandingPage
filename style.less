@@ -25,11 +25,13 @@ html > body.stlp--hideTopBar:has(.stlp--container) > {
 .stlp--container {
 	position: absolute;
 	inset: 0;
-	top: var(--topBarBlockSize);
+	padding-top: var(--topBarBlockSize);
 	z-index: 2000;
 	display: flex;
 	flex-direction: row;
 	align-items: stretch;
+	background-size: cover;
+	background-position: center;
 	.stlp--menu {
 		list-style: none;
 		margin: 0;
@@ -268,9 +270,12 @@ html > body.stlp--hideTopBar:has(.stlp--container) > {
 
 
 .stlp--settings {
-	.stlp--menuContainer {
+	> .inline-drawer > .inline-drawer-content > * {
+		margin-bottom: 1em;
+	}
+	.stlp--menuContainer, .stlp--bgContainer {
 		flex: 1 1 auto;
-		.stlp--menuList {
+		.stlp--menuList, .stlp--bgList {
 			list-style: none;
 			margin: 0;
 			padding: 0;
@@ -279,10 +284,14 @@ html > body.stlp--hideTopBar:has(.stlp--container) > {
 				flex-direction: row;
 				gap: 0.5em;
 				align-content: start;
+				align-items: start;
 				> * {
 					flex: 0 0 auto;
 				}
-				> .stlp--commandWrap {
+				> .stlp--dragHandle {
+					padding: 0.75em;
+				}
+				> .stlp--commandWrap, .stlp--content {
 					flex: 1 1 auto;
 				}
 			}
