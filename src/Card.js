@@ -74,7 +74,8 @@ export class Card {
             cache: 'no-cache',
         });
         if (response.ok) {
-            const mesList = await response.json() ?? [];
+            let mesList = await response.json() ?? [];
+            if (!Array.isArray(mesList)) mesList = [];
             this.updateLastMembers(mesList);
             this.lastMessage = mesList.slice(-1)[0];
         }
