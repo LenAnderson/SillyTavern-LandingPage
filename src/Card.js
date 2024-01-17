@@ -1,5 +1,6 @@
 import { characters, getRequestHeaders, messageFormatting, selectCharacterById, setCharacterId, substituteParams } from '../../../../../script.js';
 import { openGroupById } from '../../../../group-chats.js';
+import { applyTagsOnCharacterSelect } from '../../../../tags.js';
 import { Member } from './Member.js';
 
 export class Card {
@@ -38,7 +39,13 @@ export class Card {
             this.isGroup = false;
             this.avatar = char.avatar;
             this.members = [Member.getByName(char.name)];
-            this.openChat = ()=>selectCharacterById(String(characters.findIndex(it=>it == char)));
+            this.openChat = ()=>{
+                const id = String(characters.findIndex(it=>it == char));
+                selectCharacterById(id);
+                const tagWorkaround = document.createElement('div');
+                tagWorkaround.setAttribute('chid', id);
+                applyTagsOnCharacterSelect.call(tagWorkaround);
+            };
             this.chatEndpoint = '/api/chats';
             this.getChatBody = {
                 ch_name: char.name,
