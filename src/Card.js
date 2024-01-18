@@ -181,14 +181,14 @@ export class Card {
                 message.classList.add('mes_text');
                 if (this.lastMessage) {
                     let messageText = substituteParams(this.lastMessage.mes ?? '');
-                    setCharacterId(-1);
+                    // setCharacterId(-1);
                     messageText = messageFormatting(
                         messageText,
                         this.lastMessage.name,
                         false,
                         this.lastMessage.is_user,
                     );
-                    setCharacterId(undefined);
+                    // setCharacterId(undefined);
                     message.innerHTML = messageText;
                 }
                 wrap.append(message);
