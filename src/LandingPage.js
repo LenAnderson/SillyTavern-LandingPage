@@ -111,7 +111,6 @@ export class LandingPage {
     async render() {
         this.dom?.remove();
         const container = document.createElement('div'); {
-            this.updateBackground();
             container.classList.add('stlp--container');
             container.style.setProperty('--stlp--cardHeight', `${this.settings.cardHeight}px`);
             const video = document.createElement('video'); {
@@ -154,6 +153,7 @@ export class LandingPage {
                 container.append(menu);
             }
             this.dom = container;
+            this.updateBackground();
         }
         return this.dom;
     }
