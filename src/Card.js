@@ -38,7 +38,7 @@ export class Card {
         } else {
             this.isGroup = false;
             this.avatar = char.avatar;
-            this.members = [Member.getByName(char.name)];
+            this.members = [Member.getByAvatar(char.avatar)];
             this.openChat = ()=>{
                 const id = String(characters.findIndex(it=>it == char));
                 selectCharacterById(id);
