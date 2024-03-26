@@ -1,4 +1,4 @@
-import { characters, getRequestHeaders, messageFormatting, selectCharacterById, setCharacterId, substituteParams } from '../../../../../script.js';
+import { characters, getRequestHeaders, messageFormatting, selectCharacterById, setActiveCharacter, setActiveGroup, setCharacterId, substituteParams } from '../../../../../script.js';
 import { openGroupById } from '../../../../group-chats.js';
 import { applyTagsOnCharacterSelect } from '../../../../tags.js';
 import { Member } from './Member.js';
@@ -30,7 +30,11 @@ export class Card {
             this.isGroup = true;
             this.avatar = char.avatar_url;
             this.members = char.members.map(m=>Member.getByAvatar(m));
-            this.openChat = ()=>openGroupById(char.id);
+            this.openChat = ()=>{
+                openGroupById(char.id);
+                setActiveCharacter(null);
+                setActiveGroup(char.id);
+            };
             this.chatEndpoint = '/api/chats/group';
             this.getChatBody = {
                 id: char.chat_id,
@@ -45,6 +49,8 @@ export class Card {
                 const tagWorkaround = document.createElement('div');
                 tagWorkaround.setAttribute('chid', id);
                 applyTagsOnCharacterSelect.call(tagWorkaround);
+                setActiveCharacter(this.avatar);
+                setActiveGroup(null);
             };
             this.chatEndpoint = '/api/chats';
             this.getChatBody = {
