@@ -1,6 +1,7 @@
 import { characters, getRequestHeaders, messageFormatting, selectCharacterById, setActiveCharacter, setActiveGroup, setCharacterId, substituteParams } from '../../../../../script.js';
 import { openGroupById } from '../../../../group-chats.js';
 import { applyTagsOnCharacterSelect } from '../../../../tags.js';
+import { waitForFrame } from '../../SillyTavern-Codex/src/lib/wait.js';
 import { Member } from './Member.js';
 
 export class Card {
@@ -21,6 +22,12 @@ export class Card {
     /**@type {HTMLImageElement}*/ avatarImg;
 
     /**@type {Boolean}*/ isLoaded = false;
+
+    /**@type {HTMLElement}*/ dom;
+    /**@type {HTMLElement}*/ domName;
+    /**@type {HTMLElement}*/ domAvatar;
+
+    /**@type {Function}*/ onOpenChat;
 
 
 
@@ -136,24 +143,52 @@ export class Card {
     }
 
 
+    async goToChat() {
+        if (this.onOpenChat) this.onOpenChat();
+        /**@type {HTMLElement} */
+        // @ts-ignore
+        const clone = this.dom.cloneNode(true);
+        Array.from(clone.querySelectorAll('.stlp--mes')).forEach(it=>it.remove());
+        const rect = this.dom.getBoundingClientRect();
+        const avaRect = this.domAvatar.getBoundingClientRect();
+        clone.style.left = `${rect.left}px`;
+        clone.style.top = `${rect.top}px`;
+        clone.style.width = `${avaRect.width}px`;
+        clone.style.height = `${avaRect.height + this.domName.offsetHeight}px`;
+        clone.classList.add('stlp--clone');
+        clone.classList.add('stlp--pulse');
+        this.dom.parentElement?.append(clone);
+        await waitForFrame();
+        const fact = Math.min(window.innerWidth / avaRect.width, window.innerHeight / (rect.height - this.domName.offsetHeight));
+        clone.style.scale = `${fact}`;
+        const offsetLeft = (window.innerWidth / 2) - (avaRect.width * fact / 2) - rect.left;
+        const offsetTop = rect.top + this.domName.offsetHeight * fact;
+        clone.style.translate = `${offsetLeft}px -${offsetTop}px`;
+        this.openChat();
+    }
+
+
     async render(settings) {
         const wrap = document.createElement('div'); {
+            this.dom = wrap;
             wrap.classList.add('stlp--cardWrap');
             const item = document.createElement('div'); {
                 item.classList.add('stlp--card');
                 if (this.isFavorite) {
                     item.classList.add('stlp--favorite');
                 }
-                item.addEventListener('click', ()=>this.openChat());
+                item.addEventListener('click', ()=>this.goToChat());
                 item.addEventListener('wheel', async(evt)=>{
                     message.scrollTop += evt.deltaY;
                 });
                 const name = document.createElement('div'); {
+                    this.domName = name;
                     name.classList.add('stlp--name');
                     name.textContent = this.name;
                     item.append(name);
                 }
                 const ava = document.createElement('div'); {
+                    this.domAvatar = ava;
                     ava.classList.add('stlp--avatar');
                     if (settings.showExpression) {
                         await Promise.all(this.getLastMembers(settings.numAvatars).map(async(mem)=>{
@@ -193,6 +228,7 @@ export class Card {
                         this.lastMessage.name,
                         false,
                         this.lastMessage.is_user,
+                        null,
                     );
                     // setCharacterId(undefined);
                     message.innerHTML = messageText;

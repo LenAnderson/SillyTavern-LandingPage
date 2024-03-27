@@ -66,7 +66,13 @@ export class LandingPage {
                 .filter(it=>!this.settings.onlyFavorites || it.fav)
                 .toSorted(compCards)
                 .slice(0, this.settings.numCards)
-                .map(it=>new Card(it).load()),
+                .map(it=>{
+                    const card = new Card(it);
+                    card.onOpenChat = ()=>{
+                        this.dom.classList.add('stlp--busy');
+                    };
+                    return card.load();
+                }),
         );
         this.cards = cards;
         log('LandingPage.load COMPLETED', this, cards);

@@ -9,6 +9,24 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar + #top-settings-ho
 html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-settings-holder {
   opacity: 1;
 }
+@keyframes stlp--pulse {
+  0% {
+    filter: saturate(0.5);
+  }
+  50% {
+    filter: saturate(1.5);
+  }
+  100% {
+    filter: saturate(0.5);
+  }
+}
+.stlp--pulse {
+  animation-name: stlp--pulse;
+  animation-duration: 3s;
+  animation-timing-function: linear;
+  animation-delay: 0s;
+  animation-iteration-count: infinite;
+}
 .stlp--container {
   --stlp--cardHeight: 200px;
   --stlp--cardWidth: calc(var(--stlp--cardHeight) / 144 * 96);
@@ -75,6 +93,18 @@ html > body.stlp--hideTopBar:has(.stlp--container) > #top-bar:hover + #top-setti
 }
 .stlp--container .stlp--wrapper .stlp--cards > .stlp--cardWrap {
   flex: 0 0 auto;
+}
+.stlp--busy.stlp--container .stlp--wrapper .stlp--cards > .stlp--cardWrap {
+  filter: blur(4px);
+  pointer-events: none;
+}
+.stlp--container .stlp--wrapper .stlp--cards > .stlp--cardWrap.stlp--clone {
+  position: fixed;
+  z-index: 10000;
+  transition: 500ms;
+  transform-origin: top left;
+  pointer-events: none;
+  filter: none;
 }
 .stlp--container .stlp--wrapper .stlp--cards > .stlp--cardWrap:hover > .stlp--card {
   scale: 1.25;
