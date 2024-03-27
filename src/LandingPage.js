@@ -15,6 +15,13 @@ export class LandingPage {
     /**@type {HTMLVideoElement}*/ video;
     /**@type {Boolean}*/ isStartingVideo;
 
+    /**@type {Boolean}*/ isInputting = false;
+    /**@type {String}*/ input = '';
+    /**@type {Number}*/ inputTime = 0;
+    /**@type {HTMLElement}*/ inputDisplayContainer;
+    /**@type {HTMLElement}*/ inputDisplay;
+    /**@type {Function}*/ handeInputBound;
+
 
 
 
@@ -40,6 +47,8 @@ export class LandingPage {
         if (this.settings.hideTopBar) {
             document.body.classList.add('stlp--hideTopBar');
         }
+
+        this.handeInputBound = this.handleInput.bind(this);
     }
 
 
@@ -86,7 +95,7 @@ export class LandingPage {
         for (const item of this.settings.bgList) {
             let val = (await executeSlashCommands(item.command))?.pipe;
             try { val = JSON.parse(val); } catch { /* empty */ }
-            if (!!val) {
+            if (val) {
                 bg = item;
                 break;
             }
@@ -152,13 +161,72 @@ export class LandingPage {
                 });
                 container.append(menu);
             }
+            const inputDisplayContainer = document.createElement('div'); {
+                this.inputDisplayContainer = inputDisplayContainer;
+                inputDisplayContainer.classList.add('stlp--inputDisplayContainer');
+                const inputDisplay = document.createElement('div'); {
+                    this.inputDisplay = inputDisplay;
+                    inputDisplay.classList.add('stlp--inputDisplay');
+                    inputDisplayContainer.append(inputDisplay);
+                }
+            }
             this.dom = container;
             this.updateBackground();
         }
+
+        window.addEventListener('keyup', this.handeInputBound);
+
         return this.dom;
     }
     unrender() {
+        window.removeEventListener('keyup',this.handeInputBound);
         this.dom?.remove();
         this.dom = null;
+    }
+
+
+
+
+    endInput() {
+        this.isInputting = false;
+        this.input = '';
+        this.inputTime = 0;
+        this.inputDisplay.textContent = '';
+        this.inputDisplayContainer.remove();
+    }
+    /**
+     *
+     * @param {KeyboardEvent} evt
+     * @returns
+     */
+    handleInput(evt) {
+        let key = evt.key;
+        if (this.isInputting) {
+            if (key == 'Escape') {
+                this.endInput();
+                return;
+            }
+            if (key == 'Enter' && !evt.shiftKey) {
+                document.querySelector('#send_textarea').value = this.input;
+                document.querySelector('#send_but').click();
+                this.endInput();
+                return;
+            }
+            if (key == 'Backspace') {
+                this.input = this.input.slice(0, -1);
+                key = '';
+            }
+        }
+        if (key == 'Enter' && evt.shiftKey) key = '\n';
+        if (key.length > 1 || evt.ctrlKey || evt.altKey) return;
+        if (!this.isInputting) {
+            log('ACTIVE', document.activeElement);
+            if (document.activeElement != document.body) return;
+            this.isInputting = true;
+            this.dom.append(this.inputDisplayContainer);
+        }
+        this.input += key;
+        this.inputTime = new Date().getTime();
+        this.inputDisplay.textContent = this.input;
     }
 }
