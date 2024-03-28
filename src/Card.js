@@ -1,8 +1,8 @@
 import { characters, getRequestHeaders, messageFormatting, selectCharacterById, setActiveCharacter, setActiveGroup, setCharacterId, substituteParams } from '../../../../../script.js';
 import { openGroupById } from '../../../../group-chats.js';
 import { applyTagsOnCharacterSelect } from '../../../../tags.js';
-import { waitForFrame } from '../../SillyTavern-Codex/src/lib/wait.js';
 import { Member } from './Member.js';
+import { waitForFrame } from './wait.js';
 
 export class Card {
     /**@type {String}*/ name;
