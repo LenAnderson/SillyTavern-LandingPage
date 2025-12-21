@@ -7,6 +7,7 @@ import { SlashCommandParser } from '../../../slash-commands/SlashCommandParser.j
 import { delay, getSortableDelay, isTrueBoolean } from '../../../utils.js';
 import { LandingPage } from './src/LandingPage.js';
 import { waitForFrame } from './src/wait.js';
+import { getAllKnownTags, getTagIdByName, getTagNameById, getUsedTagIds, parseTagListInput } from './src/tagFilter.js';
 
 
 
@@ -261,6 +262,19 @@ const initSettings = () => {
                 </div>
                 <div class="flex-container">
                     <label>
+                        Tag filters
+                        <div class="stlp--settingHelp">Click: include. Click again: exclude. Click again: clear.</div>
+                        <div class="stlp--tagFilterActions">
+                            <input type="text" class="text_pole" id="stlp--tagFilterSearch" placeholder="Search tags...">
+                            <button type="button" class="stlp--tagFilterClear">Clear filters</button>
+                        </div>
+                        <div class="stlp--tagFilterControls">
+                            <div class="stlp--tagFilterList" id="stlp--tagFilterList"></div>
+                        </div>
+                    </label>
+                </div>
+                <div class="flex-container">
+                    <label>
                         Number of avatars to show for group chats
                         <input type="number" class="text_pole" min="0" id="stlp--numAvatars" value="${lp.settings.numAvatars}">
                     </label>
@@ -355,6 +369,162 @@ const initSettings = () => {
         saveSettingsDebounced();
         onChatChanged(getContext().chatId);
     });
+    const refreshLandingDebounced = debounceAsync((chatId)=>onChatChanged(chatId), 400);
+
+    // --- Tag filters (self-contained UI, no dependency on ST's tag CSS/renderers) ---
+    /** @type {{ syncUi: ()=>void, clearSearch: ()=>void } | null} */
+    let tagFilterUi = null;
+
+    const ensureTagFilterArrays = () => {
+        lp.settings.includeTagIds ??= [];
+        lp.settings.excludeTagIds ??= [];
+        lp.settings.includeTags ??= [];
+        lp.settings.excludeTags ??= [];
+    };
+
+    const migrateTagNamesToIdsIfNeeded = () => {
+        ensureTagFilterArrays();
+
+        const hasIds = (lp.settings.includeTagIds?.length || lp.settings.excludeTagIds?.length);
+        if (hasIds) {
+            // Keep display-name arrays in sync for readability/back-compat.
+            lp.settings.includeTags = (lp.settings.includeTagIds ?? []).map(getTagNameById).filter(Boolean);
+            lp.settings.excludeTags = (lp.settings.excludeTagIds ?? []).map(getTagNameById).filter(Boolean);
+            return;
+        }
+
+        const inc = (lp.settings.includeTags ?? []).map(getTagIdByName).filter(Boolean);
+        const exc = (lp.settings.excludeTags ?? []).map(getTagIdByName).filter(Boolean);
+        lp.settings.includeTagIds = Array.from(new Set(inc));
+        lp.settings.excludeTagIds = Array.from(new Set(exc)).filter(id => !lp.settings.includeTagIds.includes(id));
+        lp.settings.includeTags = lp.settings.includeTagIds.map(getTagNameById).filter(Boolean);
+        lp.settings.excludeTags = lp.settings.excludeTagIds.map(getTagNameById).filter(Boolean);
+    };
+
+    const buildTagFilterUi = () => {
+        migrateTagNamesToIdsIfNeeded();
+
+        const searchEl = /** @type {HTMLInputElement} */ (document.querySelector('#stlp--tagFilterSearch'));
+        const clearEl = /** @type {HTMLButtonElement} */ (document.querySelector('.stlp--tagFilterClear'));
+        const listEl = /** @type {HTMLElement} */ (document.querySelector('#stlp--tagFilterList'));
+
+        const usedTagIds = getUsedTagIds();
+        const tags = getAllKnownTags()
+            .filter(t => t?.id != null && typeof t?.name === 'string')
+            .toSorted((a, b) => String(a.name).localeCompare(String(b.name)));
+
+        const setState = (btn, state) => {
+            btn.dataset.state = state;
+            btn.classList.toggle('is-include', state === 'include');
+            btn.classList.toggle('is-exclude', state === 'exclude');
+            btn.classList.toggle('is-none', state === 'none');
+        };
+
+        const syncSettingsFromUi = () => {
+            const include = Array.from(listEl.querySelectorAll('.stlp--tagPill.is-include')).map(el => el.dataset.tagId).filter(Boolean);
+            const exclude = Array.from(listEl.querySelectorAll('.stlp--tagPill.is-exclude')).map(el => el.dataset.tagId).filter(Boolean);
+            lp.settings.includeTagIds = include;
+            lp.settings.excludeTagIds = exclude;
+            lp.settings.includeTags = include.map(getTagNameById).filter(Boolean);
+            lp.settings.excludeTags = exclude.map(getTagNameById).filter(Boolean);
+            saveSettingsDebounced();
+            refreshLandingDebounced(getContext().chatId);
+        };
+
+        const syncUiFromSettings = () => {
+            ensureTagFilterArrays();
+            const includeSet = new Set((lp.settings.includeTagIds ?? []).map(String));
+            const excludeSet = new Set((lp.settings.excludeTagIds ?? []).map(String));
+            Array.from(listEl.querySelectorAll('.stlp--tagPill')).forEach(btn => {
+                const id = String(btn.dataset.tagId);
+                if (includeSet.has(id)) setState(btn, 'include');
+                else if (excludeSet.has(id)) setState(btn, 'exclude');
+                else setState(btn, 'none');
+            });
+        };
+
+        const onToggle = (evt) => {
+            evt.preventDefault();
+            const btn = /** @type {HTMLElement} */ (evt.currentTarget);
+            const id = String(btn.dataset.tagId);
+            ensureTagFilterArrays();
+
+            const includeSet = new Set((lp.settings.includeTagIds ?? []).map(String));
+            const excludeSet = new Set((lp.settings.excludeTagIds ?? []).map(String));
+
+            // Cycle: none -> include -> exclude -> none
+            if (!includeSet.has(id) && !excludeSet.has(id)) {
+                includeSet.add(id);
+            } else if (includeSet.has(id)) {
+                includeSet.delete(id);
+                excludeSet.add(id);
+            } else {
+                excludeSet.delete(id);
+            }
+
+            // Keep mutually exclusive
+            for (const x of includeSet) excludeSet.delete(x);
+
+            lp.settings.includeTagIds = Array.from(includeSet);
+            lp.settings.excludeTagIds = Array.from(excludeSet);
+            lp.settings.includeTags = lp.settings.includeTagIds.map(getTagNameById).filter(Boolean);
+            lp.settings.excludeTags = lp.settings.excludeTagIds.map(getTagNameById).filter(Boolean);
+
+            syncUiFromSettings();
+            saveSettingsDebounced();
+            refreshLandingDebounced(getContext().chatId);
+        };
+
+        const render = () => {
+            listEl.innerHTML = '';
+            const q = (searchEl.value ?? '').trim().toLowerCase();
+            for (const tag of tags) {
+                const id = String(tag.id);
+                const name = String(tag.name);
+                if (q && !name.toLowerCase().includes(q)) continue;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.classList.add('stlp--tagPill', 'is-none');
+                btn.dataset.tagId = id;
+                btn.title = name;
+                btn.textContent = name;
+
+                if (!usedTagIds.has(id)) {
+                    btn.classList.add('is-unused');
+                }
+
+                // Preserve user-set tag colors (still self-contained; we just read data).
+                if (tag.color) btn.style.setProperty('--stlp--tagBg', tag.color);
+                if (tag.color2) btn.style.setProperty('--stlp--tagFg', tag.color2);
+
+                btn.addEventListener('click', onToggle);
+                listEl.append(btn);
+            }
+
+            syncUiFromSettings();
+        };
+
+        searchEl.addEventListener('input', render);
+        clearEl?.addEventListener('click', () => {
+            ensureTagFilterArrays();
+            lp.settings.includeTagIds = [];
+            lp.settings.excludeTagIds = [];
+            lp.settings.includeTags = [];
+            lp.settings.excludeTags = [];
+            saveSettingsDebounced();
+            refreshLandingDebounced(getContext().chatId);
+            render();
+        });
+        render();
+
+        tagFilterUi = {
+            syncUi: syncUiFromSettings,
+            clearSearch: () => { searchEl.value = ''; render(); },
+        };
+    };
+
+    buildTagFilterUi();
     document.querySelector('#stlp--numAvatars').addEventListener('change', ()=>{
         lp.settings.numAvatars = Number(document.querySelector('#stlp--numAvatars').value);
         saveSettingsDebounced();
@@ -557,6 +727,26 @@ const lpSetKey = {
     showExpression: (value)=>lpSetKey.setCheckbox('showExpression', value),
     extensions: (value)=>lpSetKey.setInput('extensions', value),
     expression: (value)=>lpSetKey.setInput('expression', value),
+    includeTags: (value)=>{
+        lp.settings.includeTags = parseTagListInput(value);
+        lp.settings.includeTagIds = lp.settings.includeTags.map(getTagIdByName).filter(Boolean);
+        lp.settings.excludeTagIds = (lp.settings.excludeTagIds ?? []).filter(id => !lp.settings.includeTagIds.includes(String(id)));
+        lp.settings.excludeTags = (lp.settings.excludeTagIds ?? []).map(getTagNameById).filter(Boolean);
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+        tagFilterUi?.clearSearch?.();
+        tagFilterUi?.syncUi?.();
+    },
+    excludeTags: (value)=>{
+        lp.settings.excludeTags = parseTagListInput(value);
+        lp.settings.excludeTagIds = lp.settings.excludeTags.map(getTagIdByName).filter(Boolean);
+        lp.settings.includeTagIds = (lp.settings.includeTagIds ?? []).filter(id => !lp.settings.excludeTagIds.includes(String(id)));
+        lp.settings.includeTags = (lp.settings.includeTagIds ?? []).map(getTagNameById).filter(Boolean);
+        saveSettingsDebounced();
+        onChatChanged(getContext().chatId);
+        tagFilterUi?.clearSearch?.();
+        tagFilterUi?.syncUi?.();
+    },
 };
 const lpSetCallback = (args, value)=>{
     const [_, key, val] = /^(\S+)(?:\s+(.+))?$/.exec(value);
