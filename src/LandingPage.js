@@ -6,6 +6,7 @@ import { debounce, delay, isTrueBoolean } from '../../../../utils.js';
 import { appReady, debounceAsync, log } from '../index.js';
 import { Card } from './Card.js';
 import { waitForFrame } from './wait.js';
+import { entityPassesTagFilters } from './tagFilter.js';
 
 export class LandingPage {
     /**@type {Card[]}*/ cards = [];
@@ -55,6 +56,8 @@ export class LandingPage {
             showExpression: true,
             extensions: ['png'],
             expression: 'joy',
+            includeTags: [],
+            excludeTags: [],
             menuList: [],
             lastChat: { character:null, group:null },
             hideTopBar: true,
@@ -94,6 +97,7 @@ export class LandingPage {
             const cards = await Promise.all(
                 [...characters, ...groups]
                     .filter(it=>!this.settings.onlyFavorites || it.fav)
+                    .filter(it=>entityPassesTagFilters(it, this.settings, { characters }))
                     .toSorted(compCards)
                     .slice(0, this.settings.numCards)
                     .map(it=>{
